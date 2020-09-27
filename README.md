@@ -21,3 +21,7 @@ await FakeTime.Isolate(async time =>
 - Implement tick() (like Angular's [FakeAsync](https://angular.io/api/core/testing/fakeAsync))
 - Allow tests with Polly [timeout policies](https://github.com/App-vNext/Polly#timeout)
 - Make a nuget package
+
+# Credits
+- [Harmony](https://github.com/pardeike/Harmony) - a library for patching, replacing and decorating
+.NET and Mono methods during runtime
