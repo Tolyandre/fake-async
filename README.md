@@ -1,4 +1,6 @@
 # fake-time
+![.NET Core](https://github.com/Tolyandre/fake-time/workflows/test/badge.svg)
+
 Run tests with fake time
 
 
