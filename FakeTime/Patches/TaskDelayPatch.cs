@@ -2,15 +2,14 @@
 using System;
 using System.Threading.Tasks;
 
-namespace FakeTime
+namespace FakeTimes
 {
     [HarmonyPatch(typeof(Task), "Delay", typeof(TimeSpan))]
     class TaskDelayPatch
     {
-
         static bool Prefix(ref Task __result, TimeSpan delay)
         {
-            __result = Task.CompletedTask;
+            __result = FakeTime.CurrentTime.FakeDelay(delay);
 
             return false;
         }

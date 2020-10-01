@@ -1,14 +1,14 @@
 ﻿using HarmonyLib;
 using System;
 
-namespace FakeTime
+namespace FakeTimes
 {
     [HarmonyPatch(typeof(DateTime), "get_Now")]
-    class DateTimeNowPatch
+    class DateTimeNow
     {
         static DateTime Postfix(DateTime __result)
         {
-            return new DateTime(2020, 9, 27);
+            return FakeTime.CurrentTime.Now;
         }
     }
 }

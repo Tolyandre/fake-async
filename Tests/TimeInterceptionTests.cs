@@ -1,3 +1,4 @@
+using FakeTimes;
 using System;
 using System.Diagnostics;
 using System.Threading;
@@ -8,19 +9,19 @@ namespace Tests
 {
     public class TimeInterceptionTests
     {
+        private readonly FakeTime _fakeTime;
 
         public TimeInterceptionTests()
         {
-            // warmup
-            // first test runs longer and may not meet the time
-            FakeTime.FakeTime.Isolate(async t => { }).Wait();
+            _fakeTime = new FakeTime();
+            _fakeTime.InitialDateTime = new DateTime(2020, 9, 27);
         }
 
         [Fact]
 
         public async Task DateTimeNow()
         {
-            await FakeTime.FakeTime.Isolate(async time =>
+            await _fakeTime.Isolate(async () =>
             {
                 Assert.Equal(new DateTime(2020, 9, 27), DateTime.Now);
             });
@@ -32,14 +33,18 @@ namespace Tests
             var stopWatch = new Stopwatch();
             stopWatch.Start();
 
-            await FakeTime.FakeTime.Isolate(async time =>
+            await _fakeTime.Isolate(async () =>
             {
-                await Task.Delay(TimeSpan.FromSeconds(10));
+                var delay = Task.Delay(TimeSpan.FromSeconds(10));
+
+                _fakeTime.Tick(TimeSpan.FromSeconds(10));
+
+                await delay;
             });
 
             stopWatch.Stop();
 
-            Assert.True(stopWatch.ElapsedMilliseconds < 50, $"Dalay is not faked. Time consumed: {stopWatch.Elapsed}");
+            Assert.True(stopWatch.ElapsedMilliseconds < 500, $"Dalay is not faked. Time consumed: {stopWatch.Elapsed}");
         }
 
         [Fact]
@@ -48,13 +53,13 @@ namespace Tests
             var stopWatch = new Stopwatch();
             stopWatch.Start();
 
-            await FakeTime.FakeTime.Isolate(async time =>
+            await _fakeTime.Isolate(async () =>
             {
                 Thread.Sleep(TimeSpan.FromSeconds(10));
             });
 
             stopWatch.Stop();
-            Assert.True(stopWatch.ElapsedMilliseconds < 50, $"Sleep is not faked. Time consumed: {stopWatch.Elapsed}");
+            Assert.True(stopWatch.ElapsedMilliseconds < 500, $"Sleep is not faked. Time consumed: {stopWatch.Elapsed}");
         }
     }
 }
