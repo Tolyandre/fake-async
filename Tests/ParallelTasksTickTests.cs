@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Tests
 {
+    [CollectionDefinition("ParallelTasksTickTests", DisableParallelization = true)]
     public class ParallelTasksTickTests
     {
         private readonly FakeTime _fakeTime;
@@ -88,14 +89,14 @@ namespace Tests
                 Assert.True(_flag3Done);
                 Assert.False(_flag4Done);
 
-                _fakeTime.Tick(TimeSpan.FromSeconds(5)); // 20s total
+                _fakeTime.Tick(TimeSpan.FromSeconds(15)); // 30s total
 
                 Assert.True(_flag1Done);
                 Assert.True(_flag2Done);
                 Assert.True(_flag3Done);
                 Assert.False(_flag4Done);
 
-                _fakeTime.Tick(TimeSpan.FromSeconds(11)); // 31s total
+                _fakeTime.Tick(TimeSpan.FromSeconds(1)); // 31s total
 
                 Assert.True(_flag1Done);
                 Assert.True(_flag2Done);

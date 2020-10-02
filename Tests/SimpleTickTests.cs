@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Tests
 {
+    [CollectionDefinition("SimpleTickTests", DisableParallelization = true)]
     public class SimpleTickTests
     {
         private readonly FakeTime _fakeTime;
