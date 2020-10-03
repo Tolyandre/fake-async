@@ -9,9 +9,9 @@ namespace FakeTimes
     {
         static bool Prefix(ref Task __result, TimeSpan delay)
         {
-            __result = FakeTime.CurrentTime.FakeDelay(delay);
+            __result = FakeTime.CurrentInstance?.FakeDelay(delay);
 
-            return false;
+            return __result == null;
         }
     }
 }

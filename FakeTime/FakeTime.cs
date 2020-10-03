@@ -1,7 +1,6 @@
 ﻿using HarmonyLib;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,12 +9,22 @@ namespace FakeTimes
 {
     public class FakeTime
     {
-        internal static FakeTime CurrentTime => _currentTime.Value
-            ?? throw new InvalidOperationException("FakeTime is not initialized");
+        internal static FakeTime CurrentInstance => _currentInstance.Value;
 
-        private static AsyncLocal<FakeTime> _currentTime = new AsyncLocal<FakeTime>();
+        internal static AsyncLocal<FakeTime> _currentInstance = new AsyncLocal<FakeTime>();
 
         private DateTime _initialDateTime;
+
+        protected static Harmony _harmony;
+
+        static FakeTime()
+        {
+            const string harmonyId = "com.github.Tolyandre.fake-time";
+
+            _harmony = new Harmony(harmonyId);
+            _harmony.PatchAll(typeof(FakeTime).Assembly);
+        }
+
         public DateTime InitialDateTime
         {
             get { return _initialDateTime; }
@@ -36,16 +45,11 @@ namespace FakeTimes
 
         public async Task Isolate(Func<Task> methodUnderTest, CancellationToken cancellationToken = default)
         {
-            if (_currentTime.Value != null)
+            if (_currentInstance.Value != null)
                 throw new InvalidOperationException("Cannot run isolated test inside another isolated test");
 
-            _currentTime.Value = this;
+            _currentInstance.Value = this;
             Now = InitialDateTime;
-
-            const string harmonyId = "com.github.Tolyandre.fake-time";
-            var harmony = new Harmony(harmonyId);
-
-            harmony.PatchAll(typeof(FakeTime).Assembly);
 
             _started = true;
            
@@ -67,8 +71,7 @@ namespace FakeTimes
             }
             finally
             {
-                harmony.UnpatchAll(harmonyId);
-                _currentTime.Value = null;
+                _currentInstance.Value = null;
             }
         }
 

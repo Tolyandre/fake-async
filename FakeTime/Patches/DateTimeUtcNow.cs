@@ -8,7 +8,7 @@ namespace FakeTimes
     {
         static DateTime Postfix(DateTime __result)
         {
-            return FakeTime.CurrentTime.Now.ToUniversalTime();
+            return FakeTime.CurrentInstance?.Now.ToUniversalTime() ?? __result;
         }
     }
 }

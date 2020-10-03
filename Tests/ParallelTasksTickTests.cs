@@ -5,7 +5,6 @@ using Xunit;
 
 namespace Tests
 {
-    [CollectionDefinition("ParallelTasksTickTests", DisableParallelization = true)]
     public class ParallelTasksTickTests
     {
         private readonly FakeTime _fakeTime;

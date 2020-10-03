@@ -7,7 +7,6 @@ using Xunit;
 
 namespace Tests
 {
-    [CollectionDefinition("TimeInterceptionTests", DisableParallelization = true)]
     public class TimeInterceptionTests
     {
         private readonly FakeTime _fakeTime;
