@@ -7,7 +7,7 @@ namespace Tests
 {
     public class ParallelTasksTickTests
     {
-        private readonly FakeTime _fakeTime;
+        private readonly FakeAsync _fakeAsync;
 
         private bool _flag1Done = false;
         private bool _flag2Done = false;
@@ -16,21 +16,21 @@ namespace Tests
 
         public ParallelTasksTickTests()
         {
-            _fakeTime = new FakeTime();
-            _fakeTime.InitialDateTime = new DateTime(2020, 10, 1, 21, 30, 0);
+            _fakeAsync = new FakeAsync();
+            _fakeAsync.InitialDateTime = new DateTime(2020, 10, 1, 21, 30, 0);
         }
 
         [Fact]
 
         public async Task TickBypassesTime()
         {
-            await _fakeTime.Isolate(async () =>
+            await _fakeAsync.Isolate(async () =>
             {
                 var task = AsyncMethodWithParallelDelays();
 
-                _fakeTime.Tick(TimeSpan.FromSeconds(31));
+                _fakeAsync.Tick(TimeSpan.FromSeconds(31));
 
-                _fakeTime.ThrowIfDalayTasksNotCompleted();
+                _fakeAsync.ThrowIfDalayTasksNotCompleted();
 
                 Assert.True(_flag1Done);
                 Assert.True(_flag2Done);
@@ -45,13 +45,13 @@ namespace Tests
 
         public async Task ThrowsIfTimeRemainsAfterTick()
         {
-            await _fakeTime.Isolate(async () =>
+            await _fakeAsync.Isolate(async () =>
             {
                 var task = AsyncMethodWithParallelDelays();
 
-                _fakeTime.Tick(TimeSpan.FromSeconds(9));
+                _fakeAsync.Tick(TimeSpan.FromSeconds(9));
 
-                Assert.Throws<DalayTasksNotCompletedException>(() => _fakeTime.ThrowIfDalayTasksNotCompleted());
+                Assert.Throws<DalayTasksNotCompletedException>(() => _fakeAsync.ThrowIfDalayTasksNotCompleted());
 
                 Assert.False(_flag1Done);
                 Assert.False(_flag2Done);
@@ -63,46 +63,46 @@ namespace Tests
         [Fact]
         public async Task SerialTicksBypassesTime()
         {
-            await _fakeTime.Isolate(async () =>
+            await _fakeAsync.Isolate(async () =>
             {
                 var task = AsyncMethodWithParallelDelays();
 
-                _fakeTime.Tick(TimeSpan.FromSeconds(9));
+                _fakeAsync.Tick(TimeSpan.FromSeconds(9));
 
                 Assert.False(_flag1Done);
                 Assert.False(_flag2Done);
                 Assert.False(_flag3Done);
                 Assert.False(_flag4Done);
 
-                _fakeTime.Tick(TimeSpan.FromSeconds(1)); // 10s total
+                _fakeAsync.Tick(TimeSpan.FromSeconds(1)); // 10s total
 
                 Assert.True(_flag1Done);
                 Assert.False(_flag2Done);
                 Assert.False(_flag3Done);
                 Assert.False(_flag4Done);
 
-                _fakeTime.Tick(TimeSpan.FromSeconds(5)); // 15s total
+                _fakeAsync.Tick(TimeSpan.FromSeconds(5)); // 15s total
 
                 Assert.True(_flag1Done);
                 Assert.False(_flag2Done);
                 Assert.True(_flag3Done);
                 Assert.False(_flag4Done);
 
-                _fakeTime.Tick(TimeSpan.FromSeconds(15)); // 30s total
+                _fakeAsync.Tick(TimeSpan.FromSeconds(15)); // 30s total
 
                 Assert.True(_flag1Done);
                 Assert.True(_flag2Done);
                 Assert.True(_flag3Done);
                 Assert.False(_flag4Done);
 
-                _fakeTime.Tick(TimeSpan.FromSeconds(1)); // 31s total
+                _fakeAsync.Tick(TimeSpan.FromSeconds(1)); // 31s total
 
                 Assert.True(_flag1Done);
                 Assert.True(_flag2Done);
                 Assert.True(_flag3Done);
                 Assert.True(_flag4Done);
 
-                _fakeTime.ThrowIfDalayTasksNotCompleted();
+                _fakeAsync.ThrowIfDalayTasksNotCompleted();
 
                 await task;
             });

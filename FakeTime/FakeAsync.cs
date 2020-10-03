@@ -7,22 +7,22 @@ using System.Threading.Tasks;
 
 namespace FakeTimes
 {
-    public class FakeTime
+    public class FakeAsync
     {
-        internal static FakeTime CurrentInstance => _currentInstance.Value;
+        internal static FakeAsync CurrentInstance => _currentInstance.Value;
 
-        internal static AsyncLocal<FakeTime> _currentInstance = new AsyncLocal<FakeTime>();
+        internal static AsyncLocal<FakeAsync> _currentInstance = new AsyncLocal<FakeAsync>();
 
         private DateTime _initialDateTime;
 
         protected static Harmony _harmony;
 
-        static FakeTime()
+        static FakeAsync()
         {
-            const string harmonyId = "com.github.Tolyandre.fake-time";
+            string harmonyId = typeof(FakeAsync).FullName;
 
             _harmony = new Harmony(harmonyId);
-            _harmony.PatchAll(typeof(FakeTime).Assembly);
+            _harmony.PatchAll(typeof(FakeAsync).Assembly);
         }
 
         public DateTime InitialDateTime
@@ -46,7 +46,7 @@ namespace FakeTimes
         public async Task Isolate(Func<Task> methodUnderTest, CancellationToken cancellationToken = default)
         {
             if (_currentInstance.Value != null)
-                throw new InvalidOperationException("Cannot run isolated test inside another isolated test");
+                throw new InvalidOperationException("FakeAsync calls can not be nested");
 
             _currentInstance.Value = this;
             Now = InitialDateTime;
@@ -61,8 +61,9 @@ namespace FakeTimes
                 // TODO: track tasks to ensure they are completed after method exits
                 var wrapper = taskFactory.StartNew(async() =>
                 {
-                    Tick(TimeSpan.Zero);
                     await methodUnderTest();
+
+                    _deterministicTaskScheduler.RunTasksUntilIdle();
                 });
 
                 _deterministicTaskScheduler.RunTasksUntilIdle();
@@ -93,6 +94,7 @@ namespace FakeTimes
         public void Tick(TimeSpan duration)
         {
             var endTick = Now + duration;
+            _deterministicTaskScheduler.RunTasksUntilIdle();
 
             while (_waitList.Count > 0 && Now <= endTick)
             {

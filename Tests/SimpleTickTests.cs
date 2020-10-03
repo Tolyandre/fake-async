@@ -7,41 +7,40 @@ namespace Tests
 {
     public class SimpleTickTests
     {
-        private readonly FakeTime _fakeTime;
+        private readonly FakeAsync _fakeAsync;
 
         public SimpleTickTests()
         {
-            _fakeTime = new FakeTime();
-            _fakeTime.InitialDateTime = new DateTime(2020, 9, 30);
+            _fakeAsync = new FakeAsync();
+            _fakeAsync.InitialDateTime = new DateTime(2020, 9, 30);
         }
 
         [Fact]
 
         public async Task TickBypassesTime()
         {
-            await _fakeTime.Isolate(async () =>
+            await _fakeAsync.Isolate(async () =>
             {
                 var task = AsyncMethodWithSingleDelay();
 
-                _fakeTime.Tick(TimeSpan.FromSeconds(10));
+                _fakeAsync.Tick(TimeSpan.FromSeconds(10));
 
-                _fakeTime.ThrowIfDalayTasksNotCompleted();
+                _fakeAsync.ThrowIfDalayTasksNotCompleted();
 
                 await task;
             });
         }
 
         [Fact]
-
         public async Task ThrowsIfTimeRemainsAfterTick()
         {
-            await _fakeTime.Isolate(async () =>
+            await _fakeAsync.Isolate(async () =>
             {
                 var task = AsyncMethodWithSingleDelay();
 
-                _fakeTime.Tick(TimeSpan.FromSeconds(9));
+                _fakeAsync.Tick(TimeSpan.FromSeconds(9));
 
-                Assert.Throws<DalayTasksNotCompletedException>(() => _fakeTime.ThrowIfDalayTasksNotCompleted());
+                Assert.Throws<DalayTasksNotCompletedException>(() => _fakeAsync.ThrowIfDalayTasksNotCompleted());
             });
         }
 

@@ -9,11 +9,11 @@ namespace Tests
 {
     public class TimeInterceptionTests
     {
-        private readonly FakeTime _fakeTime;
+        private readonly FakeAsync _fakeTime;
 
         public TimeInterceptionTests()
         {
-            _fakeTime = new FakeTime();
+            _fakeTime = new FakeAsync();
             _fakeTime.InitialDateTime = new DateTime(2020, 9, 27);
         }
 
