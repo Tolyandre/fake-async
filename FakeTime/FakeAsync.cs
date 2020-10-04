@@ -41,7 +41,7 @@ namespace FakeTimes
 
         private bool _started = false;
 
-        private DeterministicTaskScheduler _deterministicTaskScheduler = new DeterministicTaskScheduler();
+        internal DeterministicTaskScheduler DeterministicTaskScheduler { get; private set; } = new DeterministicTaskScheduler();
 
         public async Task Isolate(Func<Task> methodUnderTest, CancellationToken cancellationToken = default)
         {
@@ -56,17 +56,17 @@ namespace FakeTimes
             try
             {
                 var taskFactory = new TaskFactory(CancellationToken.None,
-                    TaskCreationOptions.DenyChildAttach, TaskContinuationOptions.None, _deterministicTaskScheduler);
+                    TaskCreationOptions.DenyChildAttach, TaskContinuationOptions.None, DeterministicTaskScheduler);
 
                 // TODO: track tasks to ensure they are completed after method exits
                 var wrapper = taskFactory.StartNew(async() =>
                 {
                     await methodUnderTest();
 
-                    _deterministicTaskScheduler.RunTasksUntilIdle();
+                    DeterministicTaskScheduler.RunTasksUntilIdle();
                 });
 
-                _deterministicTaskScheduler.RunTasksUntilIdle();
+                DeterministicTaskScheduler.RunTasksUntilIdle();
 
                 await wrapper.Unwrap();
             }
@@ -94,7 +94,7 @@ namespace FakeTimes
         public void Tick(TimeSpan duration)
         {
             var endTick = Now + duration;
-            _deterministicTaskScheduler.RunTasksUntilIdle();
+            DeterministicTaskScheduler.RunTasksUntilIdle();
 
             while (_waitList.Count > 0 && Now <= endTick)
             {
@@ -110,7 +110,7 @@ namespace FakeTimes
                 next.Value.SetResult(false);
                 _waitList.RemoveAt(0);
 
-                _deterministicTaskScheduler.RunTasksUntilIdle();
+                DeterministicTaskScheduler.RunTasksUntilIdle();
             }
         }
 
