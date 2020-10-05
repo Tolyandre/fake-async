@@ -2,12 +2,19 @@
 using System;
 using System.Threading.Tasks;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Tests
 {
     public class TaskSchedulerTests
     {
         private readonly FakeAsync _fakeAsync = new FakeAsync();
+        private readonly ITestOutputHelper _testOutputHelper;
+
+        public TaskSchedulerTests(ITestOutputHelper testOutputHelper)
+        {
+            _testOutputHelper = testOutputHelper;
+        }
 
         /// <summary>
         /// Test assumes that delay is enough to flush any tasks on thread pool.
@@ -31,7 +38,10 @@ namespace Tests
             var realDelay = Task.Delay(TimeSpan.FromSeconds(2));
             await _fakeAsync.Isolate(async () =>
             {
-                _ = Task.Run(() => flag2 = true);
+                var t = Task.Run(() =>
+                {
+                    flag2 = true;
+                });
 
                 // Delay task is created outside of FakeAsync, so it is a real delay with timer.
                 await realDelay;
@@ -46,7 +56,7 @@ namespace Tests
         [Fact]
         public async Task ChangesTaskSchedulerInsideFakeAsync()
         {
-            var t =TaskScheduler.Default;
+            var t = TaskScheduler.Default;
 
             Task.Run(() => { }).AssertIfTheadPoolTaskScheduler();
 
@@ -58,6 +68,31 @@ namespace Tests
             });
 
             Task.Run(() => { }).AssertIfTheadPoolTaskScheduler();
+        }
+
+        [Fact]
+        public async Task PatchAppliedForRepeatetiveAccess()
+        {
+            //Traverse.Create<TaskScheduler>()
+            //  .Field("s_defaultTaskScheduler")
+            // .SetValue(new DeterministicTaskScheduler());
+
+            _testOutputHelper.WriteLine(TaskScheduler.Default.GetType().ToString());
+
+            for (int i = 1; i <= 100; i++)
+            {
+                _testOutputHelper.WriteLine("Iteration {0}", i);
+
+                //Assert.Equal("System.Threading.Tasks.ThreadPoolTaskScheduler", TaskScheduler.Default.GetType().FullName);
+                await _fakeAsync.Isolate(() =>
+                {
+                    //  Assert.IsType<DeterministicTaskScheduler>(TaskScheduler.Default);
+
+                    Task.Run(() => { }).AssertIfFakeTaskScheduler();
+
+                    return Task.CompletedTask;
+                });
+            }
         }
     }
 }
