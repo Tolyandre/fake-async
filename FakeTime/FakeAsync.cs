@@ -15,14 +15,33 @@ namespace FakeTimes
 
         private DateTime _initialDateTime;
 
-        protected static Harmony _harmony;
+        private static bool _preventTieredCompilationDelayed = false;
+        private static Harmony _harmony;
 
         static FakeAsync()
         {
             string harmonyId = typeof(FakeAsync).FullName;
-
             _harmony = new Harmony(harmonyId);
+
             _harmony.PatchAll(typeof(FakeAsync).Assembly);
+        }
+
+        /// <summary>
+        /// It needs patching before every call, because of multi tier JITting overrides patches
+        /// </summary>
+        public static void ReapplyPatch()
+        {
+
+#if TIERED_COMPILATION_PROTECTION
+
+            lock (_harmony)
+            {
+                _harmony.UnpatchAll();
+                _harmony.PatchAll(typeof(FakeAsync).Assembly);
+            }
+
+#endif
+
         }
 
         public DateTime InitialDateTime
@@ -48,17 +67,20 @@ namespace FakeTimes
             if (_currentInstance.Value != null)
                 throw new InvalidOperationException("FakeAsync calls can not be nested");
 
+            await WarmUpToPreventTieredCompilation();
+
             _currentInstance.Value = this;
             Now = InitialDateTime;
 
             _started = true;
-           
-            try
-            {
-                var taskFactory = new TaskFactory(CancellationToken.None,
+
+            var taskFactory = new TaskFactory(CancellationToken.None,
                     TaskCreationOptions.DenyChildAttach, TaskContinuationOptions.None, DeterministicTaskScheduler);
 
-                // TODO: track tasks to ensure they are completed after method exits
+            ReapplyPatch();
+
+            try
+            {
                 var wrapper = taskFactory.StartNew(async() =>
                 {
                     await methodUnderTest();
@@ -74,6 +96,22 @@ namespace FakeTimes
             {
                 _currentInstance.Value = null;
             }
+        }
+
+        private static async Task WarmUpToPreventTieredCompilation()
+        {
+#if TIERED_COMPILATION_PROTECTION
+
+            _ = Task.Run(() => { });
+            _ = Task.Delay(TimeSpan.FromSeconds(0));
+
+            if (!_preventTieredCompilationDelayed)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5));
+                _preventTieredCompilationDelayed = true;
+            }
+
+#endif
         }
 
         // This collection is not concurrent, because one-task per time TaskScheduler is used

@@ -9,19 +9,19 @@ namespace Tests
 {
     public class TimeInterceptionTests
     {
-        private readonly FakeAsync _fakeTime;
+        private readonly FakeAsync _fakeAsync;
 
         public TimeInterceptionTests()
         {
-            _fakeTime = new FakeAsync();
-            _fakeTime.InitialDateTime = new DateTime(2020, 9, 27);
+            _fakeAsync = new FakeAsync();
+            _fakeAsync.InitialDateTime = new DateTime(2020, 9, 27);
         }
 
         [Fact]
 
         public async Task DateTimeNow()
         {
-            await _fakeTime.Isolate(async () =>
+            await _fakeAsync.Isolate(async () =>
             {
                 Assert.Equal(new DateTime(2020, 9, 27), DateTime.Now);
                 Assert.Equal(new DateTime(2020, 9, 27), DateTime.Now);
@@ -32,13 +32,17 @@ namespace Tests
         public async Task TaskDelay()
         {
             var stopWatch = new Stopwatch();
+
+            //warm up
+            await _fakeAsync.Isolate(async () => { });
+
             stopWatch.Start();
 
-            await _fakeTime.Isolate(async () =>
+            await _fakeAsync.Isolate(async () =>
             {
                 var delay = Task.Delay(TimeSpan.FromSeconds(10));
 
-                _fakeTime.Tick(TimeSpan.FromSeconds(10));
+                _fakeAsync.Tick(TimeSpan.FromSeconds(10));
 
                 await delay;
             });
@@ -52,14 +56,18 @@ namespace Tests
         public async Task SerialTaskDelay()
         {
             var stopWatch = new Stopwatch();
+
+            //warm up
+            await _fakeAsync.Isolate(async () => { });
+
             stopWatch.Start();
 
-            await _fakeTime.Isolate(async () =>
+            await _fakeAsync.Isolate(async () =>
             {
                 var delay1 = AsyncMethod1();
                 var delay2 = AsyncMethod2();
 
-                _fakeTime.Tick(TimeSpan.FromSeconds(11));
+                _fakeAsync.Tick(TimeSpan.FromSeconds(11));
 
                 await Task.WhenAll(delay1, delay2);
                 //await delay1;
@@ -87,7 +95,7 @@ namespace Tests
             var stopWatch = new Stopwatch();
             stopWatch.Start();
 
-            await _fakeTime.Isolate(async () =>
+            await _fakeAsync.Isolate(async () =>
             {
                 Thread.Sleep(TimeSpan.FromSeconds(10));
             });

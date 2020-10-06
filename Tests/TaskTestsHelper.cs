@@ -9,22 +9,26 @@ namespace Tests
     {
         public static void AssertIfTheadPoolTaskScheduler(this Task task)
         {
-            var taskSchedulerType = Traverse.Create(task)
-                .Field("m_taskScheduler")
-                .GetValue()
-                .GetType();
+            Assert.NotNull(task);
 
-            Assert.Equal("System.Threading.Tasks.ThreadPoolTaskScheduler", taskSchedulerType.FullName);
+            var taskScheduler = Traverse.Create(task)
+                .Field("m_taskScheduler")
+                .GetValue();
+
+            Assert.NotNull(taskScheduler);
+            Assert.Equal("System.Threading.Tasks.ThreadPoolTaskScheduler", taskScheduler.GetType().FullName);
         }
 
         public static void AssertIfFakeTaskScheduler(this Task task)
         {
-            var taskSchedulerType = Traverse.Create(task)
-                .Field("m_taskScheduler")
-                .GetValue()
-                .GetType();
+            Assert.NotNull(task);
 
-            Assert.Equal(typeof(DeterministicTaskScheduler).FullName, taskSchedulerType.FullName);
+            var taskScheduler = Traverse.Create(task)
+                .Field("m_taskScheduler")
+                .GetValue();
+
+            Assert.NotNull(taskScheduler);
+            Assert.Equal(typeof(DeterministicTaskScheduler).FullName, taskScheduler.GetType().FullName);
         }
     }
 }

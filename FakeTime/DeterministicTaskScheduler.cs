@@ -54,6 +54,8 @@ namespace FakeTimes
         {
             foreach (var task in scheduledTasks.ToArray())
             {
+                FakeAsync.ReapplyPatch();
+
                 this.TryExecuteTask(task);
                 scheduledTasks.Remove(task);
             }
