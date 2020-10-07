@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Tests;
 using Xunit;
 
-namespace TieredCompilationTest3
+namespace TieredCompilationTest2
 {
     /// <summary>
     /// This test fail on netcoreapp3.1 if TIERED_COMPILATION_PROTECTION not defined
@@ -25,6 +25,10 @@ namespace TieredCompilationTest3
                 t1.AssertIfFakeTaskScheduler();
 
                 await realDelay;
+
+                Assert.NotNull(FakeAsync.CurrentInstance);
+
+                //FakeAsync.ReapplyPatch();
 
                 var t2 = Task.Run(() => { });
                 t2.AssertIfFakeTaskScheduler();

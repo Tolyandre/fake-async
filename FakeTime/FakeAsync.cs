@@ -9,7 +9,7 @@ namespace FakeTimes
 {
     public class FakeAsync
     {
-        internal static FakeAsync CurrentInstance => _currentInstance.Value;
+        public static FakeAsync CurrentInstance => _currentInstance.Value;
 
         internal static AsyncLocal<FakeAsync> _currentInstance = new AsyncLocal<FakeAsync>();
 
@@ -27,21 +27,15 @@ namespace FakeTimes
         }
 
         /// <summary>
-        /// It needs patching before every call, because of multi tier JITting overrides patches
+        /// May help when multi tier JITting overrides patches.
         /// </summary>
         public static void ReapplyPatch()
         {
-
-#if TIERED_COMPILATION_PROTECTION
-
             lock (_harmony)
             {
                 _harmony.UnpatchAll();
                 _harmony.PatchAll(typeof(FakeAsync).Assembly);
             }
-
-#endif
-
         }
 
         public DateTime InitialDateTime
@@ -67,8 +61,6 @@ namespace FakeTimes
             if (_currentInstance.Value != null)
                 throw new InvalidOperationException("FakeAsync calls can not be nested");
 
-            await WarmUpToPreventTieredCompilation();
-
             _currentInstance.Value = this;
             Now = InitialDateTime;
 
@@ -77,20 +69,18 @@ namespace FakeTimes
             var taskFactory = new TaskFactory(CancellationToken.None,
                     TaskCreationOptions.DenyChildAttach, TaskContinuationOptions.None, DeterministicTaskScheduler);
 
-            ReapplyPatch();
-
             try
             {
-                var wrapper = taskFactory.StartNew(async() =>
+                var wrapper = taskFactory.StartNew(() =>
                 {
-                    await methodUnderTest();
+                    _ = methodUnderTest();
 
                     DeterministicTaskScheduler.RunTasksUntilIdle();
                 });
 
                 DeterministicTaskScheduler.RunTasksUntilIdle();
 
-                await wrapper.Unwrap();
+                await wrapper;
             }
             finally
             {
@@ -98,20 +88,16 @@ namespace FakeTimes
             }
         }
 
-        private static async Task WarmUpToPreventTieredCompilation()
+        public static async Task WarmUpToEscapeFromTieredCompilation()
         {
-#if TIERED_COMPILATION_PROTECTION
-
             _ = Task.Run(() => { });
             _ = Task.Delay(TimeSpan.FromSeconds(0));
 
             if (!_preventTieredCompilationDelayed)
             {
-                await Task.Delay(TimeSpan.FromSeconds(5));
+                 await Task.Delay(TimeSpan.FromSeconds(5));
                 _preventTieredCompilationDelayed = true;
             }
-
-#endif
         }
 
         // This collection is not concurrent, because one-task per time TaskScheduler is used
@@ -143,13 +129,16 @@ namespace FakeTimes
                     break;
                 }
 
+                _waitList.RemoveAt(0);
                 Now = next.Key;
 
+                // SetResult will also run its continuation task
                 next.Value.SetResult(false);
-                _waitList.RemoveAt(0);
 
                 DeterministicTaskScheduler.RunTasksUntilIdle();
             }
+
+            Now = endTick;
         }
 
         /// <summary>

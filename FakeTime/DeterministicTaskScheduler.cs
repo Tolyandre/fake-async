@@ -10,24 +10,24 @@ namespace FakeTimes
     // https://gist.github.com/anonymous/8172108
     public class DeterministicTaskScheduler : TaskScheduler
     {
-        private List<Task> scheduledTasks = new List<Task>();
+        private readonly List<Task> _scheduledTasks = new List<Task>();
 
         #region TaskScheduler methods
 
         protected override void QueueTask(Task task)
         {
-            scheduledTasks.Add(task);
+            _scheduledTasks.Add(task);
         }
 
         protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
         {
-            scheduledTasks.Add(task);
+            _scheduledTasks.Add(task);
             return false;
         }
 
         protected override IEnumerable<Task> GetScheduledTasks()
         {
-            return scheduledTasks;
+            return _scheduledTasks;
         }
 
         public override int MaximumConcurrencyLevel { get { return 1; } }
@@ -40,10 +40,11 @@ namespace FakeTimes
         /// </summary>
         public void RunTasksUntilIdle()
         {
-            while (scheduledTasks.Any())
-            {
-                this.RunPendingTasks();
-            }
+         //   lock (_scheduledTasks)
+                while (_scheduledTasks.Any())
+                {
+                    this.RunPendingTasks();
+                }
         }
 
         /// <summary>
@@ -52,13 +53,14 @@ namespace FakeTimes
         /// </summary>
         public void RunPendingTasks()
         {
-            foreach (var task in scheduledTasks.ToArray())
-            {
-                FakeAsync.ReapplyPatch();
+         //   lock (_scheduledTasks)
+                foreach (var task in _scheduledTasks.ToArray())
+                {
+                    FakeAsync.ReapplyPatch();
 
-                this.TryExecuteTask(task);
-                scheduledTasks.Remove(task);
-            }
+                    this.TryExecuteTask(task);
+                    _scheduledTasks.Remove(task);
+                }
         }
     }
 }

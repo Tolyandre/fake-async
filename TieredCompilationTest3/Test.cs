@@ -52,6 +52,8 @@ namespace TieredCompilationTest3
                     Assert.True(stopwatch.ElapsedMilliseconds < 100, $"Dalay is not faked. Time consumed: {stopwatch.Elapsed}");
                 }
 
+                await Task.Yield();
+
                 for (int i = 0; i < ticks; i++)
                 {
                     _testOutputHelper.WriteLine("Part II, iteration {0}", i);
@@ -67,12 +69,10 @@ namespace TieredCompilationTest3
                     Assert.True(stopwatch.ElapsedMilliseconds < 100, $"Dalay is not faked. Time consumed: {stopwatch.Elapsed}");
                 }
             });
-
-            await Task.Delay(_delayForJITdoesHisWork);
+           
             _fakeAsync.Tick(TimeSpan.FromSeconds(ticks * tickStep));
-
+            _fakeAsync.Tick(TimeSpan.FromSeconds(ticks * tickStep));
             await Task.Delay(_delayForJITdoesHisWork);
-            _fakeAsync.Tick(TimeSpan.FromSeconds(ticks * tickStep*10));
 
             await testing;
         }
