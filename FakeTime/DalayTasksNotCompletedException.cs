@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace FakeTimes
+namespace FakeAsyncs
 {
     public class DalayTasksNotCompletedException : Exception
     {

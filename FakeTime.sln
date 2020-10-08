@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30517.126
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FakeTime", "FakeTime\FakeTime.csproj", "{1F589D5D-FE60-4F70-B3A5-B7924CC3AC7C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FakeAsync", "FakeTime\FakeAsync.csproj", "{1F589D5D-FE60-4F70-B3A5-B7924CC3AC7C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests", "Tests\Tests.csproj", "{51F751E6-18DB-4042-B5C0-1E469EF5DAC3}"
 EndProject
@@ -13,7 +13,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TieredCompilationTest2", "T
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TieredCompilationTest3", "TieredCompilationTest3\TieredCompilationTest3.csproj", "{0437FEE4-8391-4837-8B8F-3A829DF65A83}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MixedTaskSchedulersAndDelay", "MixedTaskSchedulersAndDelay\MixedTaskSchedulersAndDelay.csproj", "{1F8BE723-D0ED-4480-9143-28D75C59F371}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MixedTaskSchedulersAndDelay", "MixedTaskSchedulersAndDelay\MixedTaskSchedulersAndDelay.csproj", "{1F8BE723-D0ED-4480-9143-28D75C59F371}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

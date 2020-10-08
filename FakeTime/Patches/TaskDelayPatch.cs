@@ -2,7 +2,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace FakeTimes
+namespace FakeAsyncs
 {
     [HarmonyPatch(typeof(Task), "Delay", typeof(TimeSpan))]
     class TaskDelayPatch

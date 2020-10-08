@@ -4,7 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace FakeTimes
+namespace FakeAsyncs
 {
     //    [HarmonyPatch(typeof(TaskScheduler), "get_Default")]
     //    class TaskSchedulerPatch

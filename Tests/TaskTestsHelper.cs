@@ -1,4 +1,4 @@
-﻿using FakeTimes;
+﻿using FakeAsyncs;
 using HarmonyLib;
 using System.Threading.Tasks;
 using Xunit;

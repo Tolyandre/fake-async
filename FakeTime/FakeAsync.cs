@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace FakeTimes
+namespace FakeAsyncs
 {
     public class FakeAsync
     {
@@ -125,7 +125,6 @@ namespace FakeTimes
                 var next = _waitList.First();
                 if (next.Key > endTick)
                 {
-                    Now = endTick;
                     break;
                 }
 

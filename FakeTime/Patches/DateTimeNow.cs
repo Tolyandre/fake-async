@@ -1,7 +1,7 @@
 ﻿using HarmonyLib;
 using System;
 
-namespace FakeTimes
+namespace FakeAsyncs
 {
     [HarmonyPatch(typeof(DateTime), "get_Now")]
     class DateTimeNow

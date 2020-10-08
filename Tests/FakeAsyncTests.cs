@@ -1,4 +1,4 @@
-﻿using FakeTimes;
+﻿using FakeAsyncs;
 using System;
 using System.Threading.Tasks;
 using Xunit;
@@ -72,9 +72,30 @@ namespace Tests
         }
 
         [Fact]
-        public async Task RunsChainedTaks()
+        public async Task TickSkipsTime()
         {
+            bool flag = false;
+            _fakeAsync.InitialDateTime = new DateTime(2020, 10, 20);
 
+            Task testing = _fakeAsync.Isolate(async () =>
+            {
+                await Task.Delay(TimeSpan.FromSeconds(10));
+
+                flag = true;
+                Assert.Equal(new DateTime(2020, 10, 20, 0, 0, 10), DateTime.Now);
+
+                await Task.Delay(TimeSpan.FromSeconds(10));
+            });
+
+            _fakeAsync.Tick(TimeSpan.FromSeconds(9));
+            Assert.False(flag); // after 9s flag still false
+
+            _fakeAsync.Tick(TimeSpan.FromSeconds(1));
+            Assert.True(flag); // skip 1s more and now flag==true
+
+            _fakeAsync.Tick(TimeSpan.FromSeconds(10)); // skip remaining time
+
+            await testing; // propagate any exceptions
         }
 
         [Fact]

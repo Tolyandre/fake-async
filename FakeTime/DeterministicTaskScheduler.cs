@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace FakeTimes
+namespace FakeAsyncs
 {
     /// <summary>
     /// TaskScheduker for executing tasks on the same thread that calls RunTasksUntilIdle() or RunPendingTasks() 

@@ -1,4 +1,4 @@
-using FakeTimes;
+using FakeAsyncs;
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;

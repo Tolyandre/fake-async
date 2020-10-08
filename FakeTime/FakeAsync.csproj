@@ -3,12 +3,6 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>FakeTimes</RootNamespace>
-
-    <!--<TieredCompilation>false</TieredCompilation>-->
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <!--<DefineConstants>TIERED_COMPILATION_PROTECTION</DefineConstants>-->
   </PropertyGroup>
 
   <ItemGroup>

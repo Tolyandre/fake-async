@@ -2,7 +2,7 @@
 using System;
 using System.Threading;
 
-namespace FakeTimes
+namespace FakeAsyncs
 {
     [HarmonyPatch(typeof(Thread), "Sleep", typeof(TimeSpan))]
     class ThreadSleepPatch
