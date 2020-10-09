@@ -15,8 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FakeTime\FakeAsync.csproj" />
-    <ProjectReference Include="..\Tests\Tests.csproj" />
+    <ProjectReference Include="..\..\FakeAsync\FakeAsync.csproj" />
   </ItemGroup>
 
 </Project>

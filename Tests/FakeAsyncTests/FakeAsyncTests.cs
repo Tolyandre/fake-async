@@ -119,5 +119,36 @@ namespace Tests
                 Assert.Equal("FakeAsync calls can not be nested", exception.Message);
             });
         }
+
+        [Fact]
+        public async Task PropagatesExceptionFromAsync()
+        {
+            await Assert.ThrowsAsync<ApplicationException>(() => _fakeAsync.Isolate(async () =>
+            {
+                throw new ApplicationException("A message");
+            }));
+        }
+
+        [Fact]
+        public async Task PropagatesExceptionFromSync()
+        {
+            await Assert.ThrowsAsync<ApplicationException>(() => _fakeAsync.Isolate(() =>
+            {
+                throw new ApplicationException("A message");
+            }));
+        }
+
+        [Fact]
+        public async Task ThrowsIfPendingTaskStillInQueue()
+        {
+            var testing = _fakeAsync.Isolate(async () =>
+            {
+                await Task.Delay(TimeSpan.FromSeconds(10));
+            });
+
+            _fakeAsync.Tick(TimeSpan.FromSeconds(9));
+
+            await Assert.ThrowsAsync<DelayTasksNotCompletedException>(() => testing);
+        }
     }
 }

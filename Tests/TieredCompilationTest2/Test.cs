@@ -13,7 +13,7 @@ namespace TieredCompilationTest2
     {
         private readonly FakeAsync _fakeAsync = new FakeAsync();
 
-        private TimeSpan _delayForJITdoesHisWork = TimeSpan.FromSeconds(5);
+        private readonly TimeSpan _delayForJITdoesHisWork = TimeSpan.FromSeconds(5);
 
         [Fact]
         public async Task PatchRemainsAfterDelay2()

@@ -25,8 +25,6 @@ namespace Tests
 
                 _fakeAsync.Tick(TimeSpan.FromSeconds(10));
 
-                _fakeAsync.ThrowIfDalayTasksNotCompleted();
-
                 await task;
             });
         }
@@ -34,14 +32,12 @@ namespace Tests
         [Fact]
         public async Task ThrowsIfTimeRemainsAfterTick()
         {
-            await _fakeAsync.Isolate(async () =>
+            await Assert.ThrowsAsync<DelayTasksNotCompletedException>(() => _fakeAsync.Isolate(async () =>
             {
                 var task = AsyncMethodWithSingleDelay();
 
                 _fakeAsync.Tick(TimeSpan.FromSeconds(9));
-
-                Assert.Throws<DalayTasksNotCompletedException>(() => _fakeAsync.ThrowIfDalayTasksNotCompleted());
-            });
+            }));
         }
 
         private Task AsyncMethodWithSingleDelay()

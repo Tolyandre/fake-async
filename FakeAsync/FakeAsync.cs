@@ -16,7 +16,7 @@ namespace FakeAsyncs
         private DateTime _initialDateTime;
 
         private static bool _preventTieredCompilationDelayed = false;
-        private static Harmony _harmony;
+        private static readonly Harmony _harmony;
 
         static FakeAsync()
         {
@@ -56,7 +56,13 @@ namespace FakeAsyncs
 
         internal DeterministicTaskScheduler DeterministicTaskScheduler { get; private set; } = new DeterministicTaskScheduler();
 
-        public async Task Isolate(Func<Task> methodUnderTest, CancellationToken cancellationToken = default)
+        public Task Isolate(Action methodUnderTest) => Isolate(() =>
+        {
+            methodUnderTest();
+            return Task.CompletedTask;
+        });
+
+        public async Task Isolate(Func<Task> methodUnderTest)
         {
             if (_currentInstance.Value != null)
                 throw new InvalidOperationException("FakeAsync calls can not be nested");
@@ -73,14 +79,21 @@ namespace FakeAsyncs
             {
                 var wrapper = taskFactory.StartNew(() =>
                 {
-                    _ = methodUnderTest();
+                    var task = methodUnderTest();
 
                     DeterministicTaskScheduler.RunTasksUntilIdle();
+
+                    return task;
                 });
 
                 DeterministicTaskScheduler.RunTasksUntilIdle();
 
-                await wrapper;
+                await Task.Yield();
+
+                ThrowDelayTasks();
+
+                ThrowIfDelayTasksNotCompleted();
+                await await wrapper;
             }
             finally
             {
@@ -140,15 +153,29 @@ namespace FakeAsyncs
             Now = endTick;
         }
 
+        private void ThrowDelayTasks()
+        {
+            while (_waitList.Count > 0)
+            {
+                var next = _waitList.First();
+                _waitList.RemoveAt(0);
+
+                next.Value.SetException(new DelayTasksNotCompletedException(Now, new[] { next.Key }));
+
+                DeterministicTaskScheduler.RunTasksUntilIdle();
+            }
+        }
+
         /// <summary>
         /// Throws if there are dalay tasks that not expired yet.
         /// </summary>
-        public void ThrowIfDalayTasksNotCompleted()
+        private void ThrowIfDelayTasksNotCompleted()
         {
-            var times = string.Join(", ", _waitList.Select(x => x.Key));
-            if (!string.IsNullOrEmpty(times))
+            var times = _waitList.Select(x => x.Key).ToArray();
+
+            if (times.Any())
             {
-                throw new DalayTasksNotCompletedException($"Current time is {Now}. One or many Dalay tasks are still waiting for time: {times}");
+                throw new DelayTasksNotCompletedException(Now, times);
             }
         }
     }

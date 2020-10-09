@@ -45,7 +45,7 @@ Supported calls:
 
 # Known issues
 Tiered compilation in .NET Core 3.0 is enabled by default. It occasionally overrides FakeAsync patches, so mock is not reliable. Currently, there is an [open issue](https://github.com/pardeike/Harmony/issues/307) in Harmony.Lib.
-Work around is [disable](https://docs.microsoft.com/en-us/dotnet/core/run-time-config/compilation#tiered-compilation) tiered compilation in tests project:
+Workaround is to [disable](https://docs.microsoft.com/en-us/dotnet/core/run-time-config/compilation#tiered-compilation) tiered compilation in tests project:
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
 
