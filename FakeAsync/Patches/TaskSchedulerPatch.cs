@@ -36,8 +36,8 @@ namespace FakeAsyncs
         {
             if (scheduler == TaskScheduler.Default)
             {
-                var currentFakeTimeScheduler = FakeAsync.CurrentInstance?.DeterministicTaskScheduler;
-                scheduler = currentFakeTimeScheduler ?? scheduler;
+                var currentFakeAsyncTaskScheduler = FakeAsync.CurrentInstance?.DeterministicTaskScheduler;
+                scheduler = currentFakeAsyncTaskScheduler ?? scheduler;
             }
         }
     }

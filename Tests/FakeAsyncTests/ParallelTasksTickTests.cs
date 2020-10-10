@@ -7,7 +7,7 @@ namespace Tests
 {
     public class ParallelTasksTickTests
     {
-        private readonly FakeAsync _fakeAsync;
+        private readonly FakeAsyncs.FakeAsync _fakeAsync;
 
         private bool _flag1Done = false;
         private bool _flag2Done = false;
@@ -16,15 +16,15 @@ namespace Tests
 
         public ParallelTasksTickTests()
         {
-            _fakeAsync = new FakeAsync();
+            _fakeAsync = new FakeAsyncs.FakeAsync();
             _fakeAsync.InitialDateTime = new DateTime(2020, 10, 1, 21, 30, 0);
         }
 
         [Fact]
 
-        public async Task TickBypassesTime()
+        public void TickBypassesTime()
         {
-            await _fakeAsync.Isolate(async () =>
+            _fakeAsync.Isolate(async () =>
             {
                 var task = AsyncMethodWithParallelDelays();
 
@@ -41,9 +41,9 @@ namespace Tests
 
         [Fact]
 
-        public async Task ThrowsIfTimeRemainsAfterTick()
+        public void ThrowsIfTimeRemainsAfterTick()
         {
-            await Assert.ThrowsAsync<DelayTasksNotCompletedException>(() =>_fakeAsync.Isolate(async () =>
+            Assert.Throws<DelayTasksNotCompletedException>(() =>_fakeAsync.Isolate(async () =>
             {
                 var task = AsyncMethodWithParallelDelays();
 
@@ -59,9 +59,9 @@ namespace Tests
         }
 
         [Fact]
-        public async Task SerialTicksBypassesTime()
+        public void SerialTicksBypassesTime()
         {
-            await _fakeAsync.Isolate(async () =>
+            _fakeAsync.Isolate(async () =>
             {
                 var task = AsyncMethodWithParallelDelays();
 

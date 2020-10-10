@@ -1,4 +1,3 @@
-using FakeAsyncs;
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
@@ -9,11 +8,11 @@ using Xunit.Abstractions;
 namespace TieredCompilationTest3
 {
     /// <summary>
-    /// This test fail on netcoreapp3.1 if TIERED_COMPILATION_PROTECTION not defined
+    /// This test fails if TieredCompilation is on.
     /// </summary>
     public class Test
     {
-        private readonly FakeAsync _fakeAsync = new FakeAsync();
+        private readonly FakeAsyncs.FakeAsync _fakeAsync = new FakeAsyncs.FakeAsync();
 
         private TimeSpan _delayForJITdoesHisWork = TimeSpan.FromSeconds(5);
 
@@ -25,56 +24,65 @@ namespace TieredCompilationTest3
         }
 
         [Fact]
-        public async Task PatchRemainsAfterDelay3()
+        public void PatchRemainsAfterDelay3()
         {
             //warm up
-            await _fakeAsync.Isolate(async () => { });
+            _fakeAsync.Isolate(async () => { });
 
             const int tickStep = 1;
             const int ticks = 60;
-            var stopwatch = new Stopwatch();
 
-            var testing = _fakeAsync.Isolate(async () =>
+           _fakeAsync.Isolate(async () =>
             {
-                for (int i = 0; i < ticks; i++)
-                {
-                    _testOutputHelper.WriteLine("Part I, iteration {0}", i);
+                var testing = MethodUnderTest(ticks, tickStep);
 
-                    stopwatch.Restart();
+                _fakeAsync.Tick(TimeSpan.FromSeconds(ticks * tickStep));
+                _fakeAsync.Tick(TimeSpan.FromSeconds(ticks * tickStep));
 
-                    var task = Task.Run(() => { });
-                    task.AssertIfFakeTaskScheduler();
-
-                    //FakeAsync.ReapplyPatch();
-                    await Task.Delay(TimeSpan.FromSeconds(tickStep));
-
-                    stopwatch.Stop();
-                    Assert.True(stopwatch.ElapsedMilliseconds < 100, $"Dalay is not faked. Time consumed: {stopwatch.Elapsed}");
-                }
-
-                await Task.Yield();
-
-                for (int i = 0; i < ticks; i++)
-                {
-                    _testOutputHelper.WriteLine("Part II, iteration {0}", i);
-
-                    stopwatch.Restart();
-
-                    var task = Task.Run(() => { });
-                    task.AssertIfFakeTaskScheduler();
-
-                    await Task.Delay(TimeSpan.FromSeconds(tickStep));
-
-                    stopwatch.Stop();
-                    Assert.True(stopwatch.ElapsedMilliseconds < 100, $"Dalay is not faked. Time consumed: {stopwatch.Elapsed}");
-                }
+                await testing;
             });
            
-            _fakeAsync.Tick(TimeSpan.FromSeconds(ticks * tickStep));
-            _fakeAsync.Tick(TimeSpan.FromSeconds(ticks * tickStep));
-            await Task.Delay(_delayForJITdoesHisWork);
 
-            await testing;
+            //await Task.Delay(_delayForJITdoesHisWork);
+            
+        }
+
+        private async Task MethodUnderTest(int ticks, int tickStep)
+        {
+            var stopwatch = new Stopwatch();
+
+            for (int i = 0; i < ticks; i++)
+            {
+                _testOutputHelper.WriteLine("Part I, iteration {0}", i);
+
+                stopwatch.Restart();
+
+                var task = Task.Run(() => { });
+                task.AssertIfFakeTaskScheduler();
+
+                //FakeAsync.ReapplyPatch();
+                await Task.Delay(TimeSpan.FromSeconds(tickStep));
+
+                stopwatch.Stop();
+                Assert.True(stopwatch.ElapsedMilliseconds < 100, $"Dalay is not faked. Time consumed: {stopwatch.Elapsed}");
+            }
+
+            await Task.Yield();
+
+            for (int i = 0; i < ticks; i++)
+            {
+                _testOutputHelper.WriteLine("Part II, iteration {0}", i);
+
+                stopwatch.Restart();
+
+                var task = Task.Run(() => { });
+                task.AssertIfFakeTaskScheduler();
+
+                await Task.Delay(TimeSpan.FromSeconds(tickStep));
+
+                stopwatch.Stop();
+                Assert.True(stopwatch.ElapsedMilliseconds < 100, $"Dalay is not faked. Time consumed: {stopwatch.Elapsed}");
+            }
         }
     }
 }

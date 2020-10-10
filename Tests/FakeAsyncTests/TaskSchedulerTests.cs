@@ -7,7 +7,7 @@ namespace Tests
 {
     public class TaskSchedulerTests
     {
-        private readonly FakeAsync _fakeAsync = new FakeAsync();
+        private readonly FakeAsyncs.FakeAsync _fakeAsync = new FakeAsyncs.FakeAsync();
         private readonly ITestOutputHelper _testOutputHelper;
 
         public TaskSchedulerTests(ITestOutputHelper testOutputHelper)
@@ -21,7 +21,7 @@ namespace Tests
             var task = Task.Run(() => { });
             task.AssertIfTheadPoolTaskScheduler();
 
-            await _fakeAsync.Isolate(() =>
+            _fakeAsync.Isolate(() =>
             {
                 var task2 = Task.Run(() => { });
                 task2.AssertIfFakeTaskScheduler();

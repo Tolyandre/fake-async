@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FakeAsyncs
@@ -10,6 +11,8 @@ namespace FakeAsyncs
     // https://gist.github.com/anonymous/8172108
     public class DeterministicTaskScheduler : TaskScheduler
     {
+        private object _lockObj = new object();
+
         private readonly List<Task> _scheduledTasks = new List<Task>();
 
         #region TaskScheduler methods
@@ -40,27 +43,38 @@ namespace FakeAsyncs
         /// </summary>
         public void RunTasksUntilIdle()
         {
-         //   lock (_scheduledTasks)
+            var lockTaken = false;
+            Monitor.TryEnter(_lockObj, ref lockTaken);
+
+            if (!lockTaken)
+                throw new FakeAsyncAssertException("Only one thread is allowed to run inside FakeAsync. " + FakeAsyncAssertException.DefaultTaskSchedulerWarning);
+
+            try
+            {
                 while (_scheduledTasks.Any())
                 {
                     this.RunPendingTasks();
                 }
+            }
+            finally
+            {
+                Monitor.Exit(_lockObj);
+            }
         }
 
         /// <summary>
         /// Executes the scheduled Tasks synchronously on the current thread. If those tasks schedule new tasks
         /// they will only be executed with the next call to RunTasksUntilIdle() or RunPendingTasks(). 
         /// </summary>
-        public void RunPendingTasks()
+        private void RunPendingTasks()
         {
-         //   lock (_scheduledTasks)
-                foreach (var task in _scheduledTasks.ToArray())
-                {
-                    FakeAsync.ReapplyPatch();
+            foreach (var task in _scheduledTasks.ToArray())
+            {
+                // FakeAsync.ReapplyPatch();
 
-                    this.TryExecuteTask(task);
-                    _scheduledTasks.Remove(task);
-                }
+                this.TryExecuteTask(task);
+                _scheduledTasks.Remove(task);
+            }
         }
     }
 }

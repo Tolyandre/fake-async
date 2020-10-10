@@ -6,12 +6,7 @@ Simulates passage of time to test asynchronous long-running code in synchronous 
 This library is inspired from Angular's [FakeAsync](https://angular.io/api/core/testing/fakeAsync).
 
 ```c#
-var fakeAsync = new FakeAsync();
-
-bool flag = false;
-fakeAsync.Now = new DateTime(2020, 10, 20);
-
-Task testing = fakeAsync.Isolate(async () =>
+async Task MethodUnderTest()
 {
 	await Task.Delay(TimeSpan.FromSeconds(10));
 
@@ -19,17 +14,27 @@ Task testing = fakeAsync.Isolate(async () =>
 	Assert.Equal(new DateTime(2020, 10, 20, 0, 0, 10), DateTime.Now); // DateTime.Now mocked
 
 	await Task.Delay(TimeSpan.FromSeconds(10));
+}
+
+var fakeAsync = new FakeAsync();
+
+bool flag = false;
+fakeAsync.Now = new DateTime(2020, 10, 20);
+
+fakeAsync.Isolate(async () =>
+{
+	var testing = MethodUnderTest();
+	
+	fakeAsync.Tick(TimeSpan.FromSeconds(9)); // skip 9s synchronously, no real delay
+	Assert.False(flag); // flag still false
+
+	fakeAsync.Tick(TimeSpan.FromSeconds(1));
+	Assert.True(flag); // skip 1s more and now flag==true
+
+	fakeAsync.Tick(TimeSpan.FromSeconds(10)); // skip remaining time
+
+	await testing; // propagate any exceptions
 });
-
-fakeAsync.Tick(TimeSpan.FromSeconds(9)); // skip 9s synchronously, no real delay
-Assert.False(flag); // flag still false
-
-fakeAsync.Tick(TimeSpan.FromSeconds(1));
-Assert.True(flag); // skip 1s more and now flag==true
-
-fakeAsync.Tick(TimeSpan.FromSeconds(10)); // skip remaining time
-
-await testing; // propagate any exceptions
 ```
 
 Supported calls:

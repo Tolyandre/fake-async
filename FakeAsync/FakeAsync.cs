@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,7 +12,7 @@ namespace FakeAsyncs
     {
         public static FakeAsync CurrentInstance => _currentInstance.Value;
 
-        internal static AsyncLocal<FakeAsync> _currentInstance = new AsyncLocal<FakeAsync>();
+        private static readonly AsyncLocal<FakeAsync> _currentInstance = new AsyncLocal<FakeAsync>();
 
         private DateTime _initialDateTime;
 
@@ -56,13 +57,9 @@ namespace FakeAsyncs
 
         internal DeterministicTaskScheduler DeterministicTaskScheduler { get; private set; } = new DeterministicTaskScheduler();
 
-        public Task Isolate(Action methodUnderTest) => Isolate(() =>
-        {
-            methodUnderTest();
-            return Task.CompletedTask;
-        });
+        public void Isolate(Action methodUnderTest) => Isolate(() => methodUnderTest());
 
-        public async Task Isolate(Func<Task> methodUnderTest)
+        public void Isolate(Func<Task> methodUnderTest)
         {
             if (_currentInstance.Value != null)
                 throw new InvalidOperationException("FakeAsync calls can not be nested");
@@ -77,6 +74,7 @@ namespace FakeAsyncs
 
             try
             {
+                // TODO: consider Task.RunSynchronously()
                 var wrapper = taskFactory.StartNew(() =>
                 {
                     var task = methodUnderTest();
@@ -88,13 +86,43 @@ namespace FakeAsyncs
 
                 DeterministicTaskScheduler.RunTasksUntilIdle();
 
-                await Task.Yield();
+                var delayTasksNotCompletedException = ThrowDelayTasks();
 
-                ThrowDelayTasks();
+                var unwrappedTask = wrapper.Unwrap();
 
-                ThrowIfDelayTasksNotCompleted();
-                await await wrapper;
+                if (!unwrappedTask.IsCompleted)
+                {
+                    throw new FakeAsyncAssertException("Task under test is still not completed. This is unexpected. " + FakeAsyncAssertException.DefaultTaskSchedulerWarning);
+                }
+
+                // scenario when delays are not awaited in testing method
+                if (delayTasksNotCompletedException != null && !unwrappedTask.IsFaulted)
+                {
+                    throw delayTasksNotCompletedException;
+                }
+
+                // else propagate exceptions from testing method
+                if (unwrappedTask.IsFaulted)
+                {
+                    AggregateException ex = unwrappedTask.Exception;
+
+                    // unwrap AggregatException without changing the stack-trace
+                    // to be more like the synchronous code
+                    if (ex.InnerExceptions.Count == 1)
+                        ExceptionDispatchInfo.Capture(ex.InnerExceptions[0]).Throw();
+                    else
+                        ExceptionDispatchInfo.Capture(unwrappedTask.Exception).Throw();
+                }
             }
+            //catch (AggregateException ex)
+            //{
+            //    // Unwrap AggregatException without changing the stack-trace
+            //    // to be more like the synchronous code
+            //    if (ex.InnerExceptions.Count == 1)
+            //        ExceptionDispatchInfo.Capture(ex.InnerExceptions[0]).Throw();
+
+            //    throw;
+            //}
             finally
             {
                 _currentInstance.Value = null;
@@ -108,13 +136,13 @@ namespace FakeAsyncs
 
             if (!_preventTieredCompilationDelayed)
             {
-                 await Task.Delay(TimeSpan.FromSeconds(5));
+                await Task.Delay(TimeSpan.FromSeconds(5));
                 _preventTieredCompilationDelayed = true;
             }
         }
 
         // This collection is not concurrent, because one-task per time TaskScheduler is used
-        private SortedList<DateTime, TaskCompletionSource<bool>> _waitList = new SortedList<DateTime, TaskCompletionSource<bool>>();
+        private readonly SortedList<DateTime, TaskCompletionSource<bool>> _waitList = new SortedList<DateTime, TaskCompletionSource<bool>>();
 
         public Task FakeDelay(TimeSpan duration)
         {
@@ -122,7 +150,7 @@ namespace FakeAsyncs
                 return Task.CompletedTask;
 
             var tcs = new TaskCompletionSource<bool>(null);
-            
+
             _waitList.Add(Now + duration, tcs);
 
             return tcs.Task;
@@ -153,8 +181,13 @@ namespace FakeAsyncs
             Now = endTick;
         }
 
-        private void ThrowDelayTasks()
+        /// <summary>
+        /// Throws if there are dalay tasks that not expired yet.
+        /// </summary>
+        private DelayTasksNotCompletedException ThrowDelayTasks()
         {
+            var times = _waitList.Select(x => x.Key).ToArray();
+
             while (_waitList.Count > 0)
             {
                 var next = _waitList.First();
@@ -164,19 +197,13 @@ namespace FakeAsyncs
 
                 DeterministicTaskScheduler.RunTasksUntilIdle();
             }
-        }
-
-        /// <summary>
-        /// Throws if there are dalay tasks that not expired yet.
-        /// </summary>
-        private void ThrowIfDelayTasksNotCompleted()
-        {
-            var times = _waitList.Select(x => x.Key).ToArray();
 
             if (times.Any())
             {
-                throw new DelayTasksNotCompletedException(Now, times);
+                return new DelayTasksNotCompletedException(Now, times);
             }
+
+            return null;
         }
     }
 }

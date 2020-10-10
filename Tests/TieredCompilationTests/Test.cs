@@ -7,7 +7,7 @@ using Xunit;
 namespace TieredCompilationTest1
 {
     /// <summary>
-    /// This test fail on netcoreapp3.1 if TIERED_COMPILATION_PROTECTION not defined
+    /// This test fails if TieredCompilation is on.
     /// </summary>
     public class Test
     {
@@ -22,7 +22,7 @@ namespace TieredCompilationTest1
 
             await Task.Delay(_delayForJITdoesHisWork);
 
-            await _fakeAsync.Isolate(() =>
+            _fakeAsync.Isolate(() =>
             {
                 var t = Task.Run(() => { });
                 t.AssertIfFakeTaskScheduler();

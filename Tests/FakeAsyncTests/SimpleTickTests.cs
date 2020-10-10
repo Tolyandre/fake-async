@@ -7,19 +7,19 @@ namespace Tests
 {
     public class SimpleTickTests
     {
-        private readonly FakeAsync _fakeAsync;
+        private readonly FakeAsyncs.FakeAsync _fakeAsync;
 
         public SimpleTickTests()
         {
-            _fakeAsync = new FakeAsync();
+            _fakeAsync = new FakeAsyncs.FakeAsync();
             _fakeAsync.InitialDateTime = new DateTime(2020, 9, 30);
         }
 
         [Fact]
 
-        public async Task TickBypassesTime()
+        public void TickBypassesTime()
         {
-            await _fakeAsync.Isolate(async () =>
+            _fakeAsync.Isolate(async () =>
             {
                 var task = AsyncMethodWithSingleDelay();
 
@@ -30,9 +30,9 @@ namespace Tests
         }
 
         [Fact]
-        public async Task ThrowsIfTimeRemainsAfterTick()
+        public void ThrowsIfTimeRemainsAfterTick()
         {
-            await Assert.ThrowsAsync<DelayTasksNotCompletedException>(() => _fakeAsync.Isolate(async () =>
+            Assert.Throws<DelayTasksNotCompletedException>(() => _fakeAsync.Isolate(async () =>
             {
                 var task = AsyncMethodWithSingleDelay();
 

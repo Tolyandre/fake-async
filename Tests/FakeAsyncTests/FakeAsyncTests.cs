@@ -1,5 +1,6 @@
 ﻿using FakeAsyncs;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -7,14 +8,14 @@ namespace Tests
 {
     public class FakeAsyncTests
     {
-        private readonly FakeAsync _fakeAsync = new FakeAsync();
+        private readonly FakeAsyncs.FakeAsync _fakeAsync = new FakeAsyncs.FakeAsync();
 
         [Fact]
-        public async Task RunsSynchronousCode()
+        public void RunsSynchronousCode()
         {
             var flag = false;
 
-            await _fakeAsync.Isolate(() =>
+            _fakeAsync.Isolate(() =>
             {
                 flag = true;
                 return Task.CompletedTask;
@@ -24,78 +25,83 @@ namespace Tests
         }
 
         [Fact]
-        public async Task RunsAsynchronousCode()
+        public void RunsAsynchronousCode()
         {
             var flag1 = false;
             var flag2 = false;
 
-            await _fakeAsync.Isolate(() =>
-            {
-                Task.Run(() =>
-                {
-                    flag1 = true;
-                });
+            _fakeAsync.Isolate(() =>
+           {
+               Task.Run(() =>
+               {
+                   flag1 = true;
+               });
 
-                Task.Factory.StartNew(() =>
-                {
-                    flag2 = true;
-                });
+               Task.Factory.StartNew(() =>
+               {
+                   flag2 = true;
+               });
 
-                Assert.False(flag1);
-                Assert.False(flag2);
+               Assert.False(flag1);
+               Assert.False(flag2);
 
-                _fakeAsync.Tick(TimeSpan.Zero);
+               _fakeAsync.Tick(TimeSpan.Zero);
 
-                Assert.True(flag1);
-                Assert.True(flag2);
+               Assert.True(flag1);
+               Assert.True(flag2);
 
-                return Task.CompletedTask;
-            });
+               return Task.CompletedTask;
+           });
         }
 
         [Fact]
-        public async Task RunsPendingTaskBeforeReturning()
+        public void RunsPendingTaskBeforeReturning()
         {
             var flag = false;
 
-            await _fakeAsync.Isolate(() =>
-            {
-                var task = Task.Run(() =>
-                {
-                    flag = true;
-                });
+            _fakeAsync.Isolate(() =>
+           {
+               var task = Task.Run(() =>
+               {
+                   flag = true;
+               });
 
-                return Task.CompletedTask;
-            });
+               return Task.CompletedTask;
+           });
 
             Assert.True(flag);
         }
 
         [Fact]
-        public async Task TickSkipsTime()
+        public void TickSkipsTime()
         {
             bool flag = false;
             _fakeAsync.InitialDateTime = new DateTime(2020, 10, 20);
 
-            Task testing = _fakeAsync.Isolate(async () =>
+            _fakeAsync.Isolate(async () =>
             {
-                await Task.Delay(TimeSpan.FromSeconds(10));
+                async Task MethodUnderTest()
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(10));
 
-                flag = true;
-                Assert.Equal(new DateTime(2020, 10, 20, 0, 0, 10), DateTime.Now);
+                    flag = true;
+                    Assert.Equal(new DateTime(2020, 10, 20, 0, 0, 10), DateTime.Now);
 
-                await Task.Delay(TimeSpan.FromSeconds(10));
+                    await Task.Delay(TimeSpan.FromSeconds(10));
+                }
+
+                var testing = MethodUnderTest();
+
+                _fakeAsync.Tick(TimeSpan.FromSeconds(9));
+                Assert.False(flag); // after 9s flag still false
+
+                _fakeAsync.Tick(TimeSpan.FromSeconds(1));
+                Assert.True(flag); // skip 1s more and now flag==true
+
+                _fakeAsync.Tick(TimeSpan.FromSeconds(10)); // skip remaining time
+
+                await testing; // propagate any exceptions
             });
-
-            _fakeAsync.Tick(TimeSpan.FromSeconds(9));
-            Assert.False(flag); // after 9s flag still false
-
-            _fakeAsync.Tick(TimeSpan.FromSeconds(1));
-            Assert.True(flag); // skip 1s more and now flag==true
-
-            _fakeAsync.Tick(TimeSpan.FromSeconds(10)); // skip remaining time
-
-            await testing; // propagate any exceptions
         }
 
         [Fact]
@@ -105,15 +111,15 @@ namespace Tests
         }
 
         [Fact]
-        public async Task ThrowsIfNested()
+        public void ThrowsIfNested()
         {
-            await _fakeAsync.Isolate(async () =>
+            _fakeAsync.Isolate(async () =>
             {
-                var fakeAsync2 = new FakeAsync();
+                var fakeAsync2 = new FakeAsyncs.FakeAsync();
 
-                var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                var exception = Assert.Throws<InvalidOperationException>(() =>
                 {
-                    await fakeAsync2.Isolate(() => Task.CompletedTask);
+                    fakeAsync2.Isolate(() => Task.CompletedTask);
                 });
 
                 Assert.Equal("FakeAsync calls can not be nested", exception.Message);
@@ -121,34 +127,60 @@ namespace Tests
         }
 
         [Fact]
-        public async Task PropagatesExceptionFromAsync()
+        public void PropagatesExceptionFromAsync()
         {
-            await Assert.ThrowsAsync<ApplicationException>(() => _fakeAsync.Isolate(async () =>
+            Assert.Throws<ApplicationException>(() => _fakeAsync.Isolate(async () =>
             {
                 throw new ApplicationException("A message");
             }));
         }
 
         [Fact]
-        public async Task PropagatesExceptionFromSync()
+        public void PropagatesExceptionFromSync()
         {
-            await Assert.ThrowsAsync<ApplicationException>(() => _fakeAsync.Isolate(() =>
+            Assert.Throws<ApplicationException>(() => _fakeAsync.Isolate(() =>
             {
                 throw new ApplicationException("A message");
             }));
         }
 
         [Fact]
-        public async Task ThrowsIfPendingTaskStillInQueue()
+        public void ThrowsIfPendingTaskStillInQueue()
         {
-            var testing = _fakeAsync.Isolate(async () =>
+            Assert.Throws<DelayTasksNotCompletedException>(() => _fakeAsync.Isolate(async () =>
+             {
+                 var testing = Task.Delay(TimeSpan.FromSeconds(10));
+
+                 _fakeAsync.Tick(TimeSpan.FromSeconds(9));
+
+                 await testing;
+             }));
+        }
+
+        [Fact]
+        public void YieldShouldPreserveSingleThread()
+        {
+            const int tickStep = 1;
+
+            _fakeAsync.Isolate(async () =>
             {
-                await Task.Delay(TimeSpan.FromSeconds(10));
+                var testing = MethodUnderTest();
+
+                _fakeAsync.Tick(TimeSpan.FromSeconds(tickStep * 2));
+
+                await testing;
             });
 
-            _fakeAsync.Tick(TimeSpan.FromSeconds(9));
+            static async Task MethodUnderTest()
+            {
+                await Task.Delay(TimeSpan.FromSeconds(tickStep));
 
-            await Assert.ThrowsAsync<DelayTasksNotCompletedException>(() => testing);
+                Console.WriteLine(SynchronizationContext.Current);
+
+                await Task.Yield();
+
+                await Task.Delay(TimeSpan.FromSeconds(tickStep));
+            }
         }
     }
 }
