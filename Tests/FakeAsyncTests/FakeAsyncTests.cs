@@ -156,31 +156,5 @@ namespace Tests
                  await testing;
              }));
         }
-
-        [Fact]
-        public void YieldShouldPreserveSingleThread()
-        {
-            const int tickStep = 1;
-
-            _fakeAsync.Isolate(async () =>
-            {
-                var testing = MethodUnderTest();
-
-                _fakeAsync.Tick(TimeSpan.FromSeconds(tickStep * 2));
-
-                await testing;
-            });
-
-            static async Task MethodUnderTest()
-            {
-                await Task.Delay(TimeSpan.FromSeconds(tickStep));
-
-                Console.WriteLine(SynchronizationContext.Current);
-
-                await Task.Yield();
-
-                await Task.Delay(TimeSpan.FromSeconds(tickStep));
-            }
-        }
     }
 }

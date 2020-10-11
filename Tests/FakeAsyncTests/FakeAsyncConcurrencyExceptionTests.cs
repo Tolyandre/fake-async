@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Tests
 {
-    public class FakeAsyncAssertExceptionTests
+    public class FakeAsyncConcurrencyExceptionTests
     {
         private readonly FakeAsync _fakeAsync = new FakeAsync();
 
@@ -14,12 +14,12 @@ namespace Tests
         {
             var realDelay = Task.Delay(TimeSpan.FromSeconds(10));
 
-            var ex = Assert.Throws<FakeAsyncAssertException>(() => _fakeAsync.Isolate(async () =>
+            var ex = Assert.Throws<FakeAsyncConcurrencyException>(() => _fakeAsync.Isolate(async () =>
             {
                 await realDelay;
             }));
 
-            Assert.Contains("Task under test is still not completed. This is unexpected", ex.Message);
+            Assert.Contains("Task is still not completed but method under isolation returned.", ex.Message);
         }
 
         [Fact]
@@ -27,7 +27,7 @@ namespace Tests
         {
             var realDelay = Task.Delay(TimeSpan.FromSeconds(10));
 
-            Assert.Throws<FakeAsyncAssertException>(() => _fakeAsync.Isolate(async () =>
+            Assert.Throws<FakeAsyncConcurrencyException>(() => _fakeAsync.Isolate(async () =>
             {
                 var t1 = Task.Run(() => { });
                 t1.AssertIfFakeTaskScheduler();
@@ -51,7 +51,7 @@ namespace Tests
 
             var task = AsyncMethod();
 
-            Assert.Throws<FakeAsyncAssertException>(() => _fakeAsync.Isolate(async () =>
+            Assert.Throws<FakeAsyncConcurrencyException>(() => _fakeAsync.Isolate(async () =>
             {
                 await task;
             }));

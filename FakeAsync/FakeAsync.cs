@@ -72,8 +72,15 @@ namespace FakeAsyncs
             var taskFactory = new TaskFactory(CancellationToken.None,
                     TaskCreationOptions.DenyChildAttach, TaskContinuationOptions.None, DeterministicTaskScheduler);
 
+            // YieldAwaiter (Task.Yield()) posts to synchronization context if it exists.
+            // https://github.com/dotnet/runtime/blob/61d444ae7ca77cb49f38d313da6defa66f6ca38a/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/YieldAwaitable.cs#L88
+            // This leads to concurrency between our custom task scheduler and tasks running in synchronization context thread.
+            // Clearing synchronization context makes YieldAwaiter to use current task scheduler
+            var previousSynchronizationContext = SynchronizationContext.Current;
             try
             {
+                SynchronizationContext.SetSynchronizationContext(null);
+
                 // TODO: consider Task.RunSynchronously()
                 var wrapper = taskFactory.StartNew(() =>
                 {
@@ -92,7 +99,8 @@ namespace FakeAsyncs
 
                 if (!unwrappedTask.IsCompleted)
                 {
-                    throw new FakeAsyncAssertException("Task under test is still not completed. This is unexpected. " + FakeAsyncAssertException.DefaultTaskSchedulerWarning);
+                    throw new FakeAsyncConcurrencyException("Task is still not completed but method under isolation returned. " +
+                        "This indicates that some concurrency is not handled by FakeAsync. " + FakeAsyncConcurrencyException.DefaultTaskSchedulerWarning);
                 }
 
                 // scenario when delays are not awaited in testing method
@@ -114,18 +122,10 @@ namespace FakeAsyncs
                         ExceptionDispatchInfo.Capture(unwrappedTask.Exception).Throw();
                 }
             }
-            //catch (AggregateException ex)
-            //{
-            //    // Unwrap AggregatException without changing the stack-trace
-            //    // to be more like the synchronous code
-            //    if (ex.InnerExceptions.Count == 1)
-            //        ExceptionDispatchInfo.Capture(ex.InnerExceptions[0]).Throw();
-
-            //    throw;
-            //}
             finally
             {
                 _currentInstance.Value = null;
+                SynchronizationContext.SetSynchronizationContext(previousSynchronizationContext);
             }
         }
 

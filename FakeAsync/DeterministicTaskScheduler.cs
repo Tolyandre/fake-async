@@ -47,7 +47,7 @@ namespace FakeAsyncs
             Monitor.TryEnter(_lockObj, ref lockTaken);
 
             if (!lockTaken)
-                throw new FakeAsyncAssertException("Only one thread is allowed to run inside FakeAsync. " + FakeAsyncAssertException.DefaultTaskSchedulerWarning);
+                throw new FakeAsyncConcurrencyException("Only one thread is allowed to run inside FakeAsync. " + FakeAsyncConcurrencyException.DefaultTaskSchedulerWarning);
 
             try
             {
