@@ -14,7 +14,7 @@ namespace Tests
         public TimeInterceptionTests()
         {
             _fakeAsync = new FakeAsyncs.FakeAsync();
-            _fakeAsync.InitialDateTime = new DateTime(2020, 9, 27);
+            _fakeAsync.UtcNow = new DateTime(2020, 9, 27);
         }
 
         [Fact]

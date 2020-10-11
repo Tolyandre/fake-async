@@ -9,7 +9,7 @@ namespace FakeAsyncs
     {
         static bool Prefix(ref Task __result, TimeSpan delay)
         {
-            __result = FakeAsync.CurrentInstance?.FakeDelay(delay);
+            __result = FakeAsync.CurrentInstance?.CreateFakeDelay(delay);
 
             return __result == null;
         }

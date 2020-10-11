@@ -8,16 +8,19 @@ using System.Threading.Tasks;
 
 namespace FakeAsyncs
 {
+    /// <summary>
+    /// Simulates passage of time to test asynchronous long-running code in synchronous way.
+    /// </summary>
     public class FakeAsync
     {
-        public static FakeAsync CurrentInstance => _currentInstance.Value;
+        /// <summary>
+        /// FakeAsync instance in current isolated execution context.
+        /// This value is null outside of <c>Isolate()</c>'s callback.
+        /// </summary>
+        public static FakeAsync CurrentInstance => _current.Value;
 
-        private static readonly AsyncLocal<FakeAsync> _currentInstance = new AsyncLocal<FakeAsync>();
-
-        private DateTime _initialDateTime;
-
-        private static bool _preventTieredCompilationDelayed = false;
         private static readonly Harmony _harmony;
+        private static readonly AsyncLocal<FakeAsync> _current = new AsyncLocal<FakeAsync>();
 
         static FakeAsync()
         {
@@ -27,8 +30,33 @@ namespace FakeAsyncs
             _harmony.PatchAll(typeof(FakeAsync).Assembly);
         }
 
+        private DateTime _now;
+        private bool _isRunning = false;
+        internal DeterministicTaskScheduler DeterministicTaskScheduler { get; private set; } = new DeterministicTaskScheduler();
+
+        // This collection is not thread safe, because one-task per time TaskScheduler is used
+        private readonly SortedList<DateTime, TaskCompletionSource<bool>> _waitList = new SortedList<DateTime, TaskCompletionSource<bool>>();
+
         /// <summary>
-        /// May help when multi tier JITting overrides patches.
+        /// Current fake time. This value affects <see cref="DateTime.UtcNow" /> and <see cref="DateTime.Now"/>.
+        /// </summary>
+        public DateTime UtcNow
+        {
+            get { return _now; }
+            set
+            {
+                if (_isRunning)
+                    throw new InvalidOperationException($"Cannot change {nameof(UtcNow)} when method is running. Use {nameof(Tick)}() to pass time.");
+
+                _now = value;
+            }
+        }
+
+        /// <summary>
+        /// Reapplies patches to dotnet runtime.
+        /// 
+        /// Normally this method is not needed. It may help when multi tier JITting overrides patches.
+        /// But it is better off to disable tiered compilation for now.
         /// </summary>
         public static void ReapplyPatch()
         {
@@ -39,35 +67,32 @@ namespace FakeAsyncs
             }
         }
 
-        public DateTime InitialDateTime
+        /// <summary>
+        /// Runs callback in mocked environment, isolated from default task scheduler and timers.
+        /// 
+        /// Asynchronous code will be executed sequentially. Delays will resume only after passing time with <c>Tick()</c>.
+        /// </summary>
+        /// <param name="methodUnderTest">Callback to be run in isolation.</param>
+        public void Isolate(Action methodUnderTest) => Isolate(() =>
         {
-            get { return _initialDateTime; }
-            set
-            {
-                if (_started)
-                    throw new InvalidOperationException($"Cannot change {nameof(InitialDateTime)} after test started");
+            methodUnderTest();
+            return Task.CompletedTask;
+        });
 
-                _initialDateTime = value;
-            }
-        }
-
-        public DateTime Now { get; private set; } = DateTime.Now;
-
-        private bool _started = false;
-
-        internal DeterministicTaskScheduler DeterministicTaskScheduler { get; private set; } = new DeterministicTaskScheduler();
-
-        public void Isolate(Action methodUnderTest) => Isolate(() => methodUnderTest());
-
+        /// <summary>
+        /// Runs callback in mocked environment, isolated from default task scheduler and timers.
+        /// 
+        /// Asynchronous code will be executed sequentially. Delays will resume only after passing time with <c>Tick()</c>.
+        /// </summary>
+        /// <param name="methodUnderTest">Callback to be run in isolation.</param>
         public void Isolate(Func<Task> methodUnderTest)
         {
-            if (_currentInstance.Value != null)
+            if (_current.Value != null)
                 throw new InvalidOperationException("FakeAsync calls can not be nested");
 
-            _currentInstance.Value = this;
-            Now = InitialDateTime;
+            _current.Value = this;
 
-            _started = true;
+            _isRunning = true;
 
             var taskFactory = new TaskFactory(CancellationToken.None,
                     TaskCreationOptions.DenyChildAttach, TaskContinuationOptions.None, DeterministicTaskScheduler);
@@ -124,10 +149,42 @@ namespace FakeAsyncs
             }
             finally
             {
-                _currentInstance.Value = null;
+                _current.Value = null;
                 SynchronizationContext.SetSynchronizationContext(previousSynchronizationContext);
+                _isRunning = false;
             }
         }
+
+        /// <summary>
+        /// Passes time and resumes awaited delays.
+        /// </summary>
+        /// <param name="duration">Amount of time to pass.</param>
+        public void Tick(TimeSpan duration)
+        {
+            var endTick = _now + duration;
+            DeterministicTaskScheduler.RunTasksUntilIdle();
+
+            while (_waitList.Count > 0 && _now <= endTick)
+            {
+                var next = _waitList.First();
+                if (next.Key > endTick)
+                {
+                    break;
+                }
+
+                _waitList.RemoveAt(0);
+                _now = next.Key;
+
+                // SetResult will also run its continuation task
+                next.Value.SetResult(false);
+
+                DeterministicTaskScheduler.RunTasksUntilIdle();
+            }
+
+            _now = endTick;
+        }
+
+        private static bool _preventTieredCompilationDelayed = false;
 
         public static async Task WarmUpToEscapeFromTieredCompilation()
         {
@@ -141,44 +198,16 @@ namespace FakeAsyncs
             }
         }
 
-        // This collection is not concurrent, because one-task per time TaskScheduler is used
-        private readonly SortedList<DateTime, TaskCompletionSource<bool>> _waitList = new SortedList<DateTime, TaskCompletionSource<bool>>();
-
-        public Task FakeDelay(TimeSpan duration)
+        internal Task CreateFakeDelay(TimeSpan duration)
         {
             if (duration == TimeSpan.Zero)
                 return Task.CompletedTask;
 
             var tcs = new TaskCompletionSource<bool>(null);
 
-            _waitList.Add(Now + duration, tcs);
+            _waitList.Add(UtcNow + duration, tcs);
 
             return tcs.Task;
-        }
-
-        public void Tick(TimeSpan duration)
-        {
-            var endTick = Now + duration;
-            DeterministicTaskScheduler.RunTasksUntilIdle();
-
-            while (_waitList.Count > 0 && Now <= endTick)
-            {
-                var next = _waitList.First();
-                if (next.Key > endTick)
-                {
-                    break;
-                }
-
-                _waitList.RemoveAt(0);
-                Now = next.Key;
-
-                // SetResult will also run its continuation task
-                next.Value.SetResult(false);
-
-                DeterministicTaskScheduler.RunTasksUntilIdle();
-            }
-
-            Now = endTick;
         }
 
         /// <summary>
@@ -193,14 +222,14 @@ namespace FakeAsyncs
                 var next = _waitList.First();
                 _waitList.RemoveAt(0);
 
-                next.Value.SetException(new DelayTasksNotCompletedException(Now, new[] { next.Key }));
+                next.Value.SetException(new DelayTasksNotCompletedException(UtcNow, new[] { next.Key }));
 
                 DeterministicTaskScheduler.RunTasksUntilIdle();
             }
 
             if (times.Any())
             {
-                return new DelayTasksNotCompletedException(Now, times);
+                return new DelayTasksNotCompletedException(UtcNow, times);
             }
 
             return null;

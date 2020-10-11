@@ -12,7 +12,7 @@ namespace Tests
         public SimpleTickTests()
         {
             _fakeAsync = new FakeAsyncs.FakeAsync();
-            _fakeAsync.InitialDateTime = new DateTime(2020, 9, 30);
+            _fakeAsync.UtcNow = new DateTime(2020, 9, 30);
         }
 
         [Fact]

@@ -6,6 +6,11 @@ Simulates passage of time to test asynchronous long-running code in synchronous 
 This library is inspired from Angular's [FakeAsync](https://angular.io/api/core/testing/fakeAsync).
 
 ```c#
+var fakeAsync = new FakeAsync();
+
+bool flag = false;
+fakeAsync.UtcNow = new DateTime(2020, 10, 20);
+
 async Task MethodUnderTest()
 {
 	await Task.Delay(TimeSpan.FromSeconds(10));
@@ -16,12 +21,7 @@ async Task MethodUnderTest()
 	await Task.Delay(TimeSpan.FromSeconds(10));
 }
 
-var fakeAsync = new FakeAsync();
-
-bool flag = false;
-fakeAsync.Now = new DateTime(2020, 10, 20);
-
-fakeAsync.Isolate(async () =>
+fakeAsync.Isolate(() =>
 {
 	var testing = MethodUnderTest();
 	
@@ -33,7 +33,7 @@ fakeAsync.Isolate(async () =>
 
 	fakeAsync.Tick(TimeSpan.FromSeconds(10)); // skip remaining time
 
-	await testing; // propagate any exceptions
+	return testing; // propagate any exceptions from test method
 });
 ```
 
@@ -45,6 +45,7 @@ Supported calls:
 - `new Task().Start()`
 - `Task.Delay()`
 - `Thread.Sleep()` (TODO)
+- `Task.Yield()`
 
 `Stopwatch` is not changed, so it is possible to measure time.
 

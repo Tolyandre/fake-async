@@ -7,7 +7,7 @@ namespace Tests
 {
     public class ParallelTasksTickTests
     {
-        private readonly FakeAsyncs.FakeAsync _fakeAsync;
+        private readonly FakeAsync _fakeAsync;
 
         private bool _flag1Done = false;
         private bool _flag2Done = false;
@@ -16,8 +16,8 @@ namespace Tests
 
         public ParallelTasksTickTests()
         {
-            _fakeAsync = new FakeAsyncs.FakeAsync();
-            _fakeAsync.InitialDateTime = new DateTime(2020, 10, 1, 21, 30, 0);
+            _fakeAsync = new FakeAsync();
+            _fakeAsync.UtcNow = new DateTime(2020, 10, 1, 21, 30, 0);
         }
 
         [Fact]

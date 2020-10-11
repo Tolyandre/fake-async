@@ -8,7 +8,7 @@ namespace FakeAsyncs
     {
         static DateTime Postfix(DateTime __result)
         {
-            return FakeAsync.CurrentInstance?.Now.ToUniversalTime() ?? __result;
+            return FakeAsync.CurrentInstance?.UtcNow.ToUniversalTime() ?? __result;
         }
     }
 }

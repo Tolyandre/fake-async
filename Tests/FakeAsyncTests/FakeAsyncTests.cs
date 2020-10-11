@@ -1,6 +1,5 @@
 ﻿using FakeAsyncs;
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -8,7 +7,7 @@ namespace Tests
 {
     public class FakeAsyncTests
     {
-        private readonly FakeAsyncs.FakeAsync _fakeAsync = new FakeAsyncs.FakeAsync();
+        private readonly FakeAsync _fakeAsync = new FakeAsync();
 
         [Fact]
         public void RunsSynchronousCode()
@@ -76,7 +75,7 @@ namespace Tests
         public void TickSkipsTime()
         {
             bool flag = false;
-            _fakeAsync.InitialDateTime = new DateTime(2020, 10, 20);
+            _fakeAsync.UtcNow = new DateTime(2020, 10, 20);
 
             _fakeAsync.Isolate(async () =>
             {
@@ -105,9 +104,11 @@ namespace Tests
         }
 
         [Fact]
-        public void DefaultDateIsNow()
+        public void UtcNowIsDefault()
         {
-            Assert.True(DateTime.Now - _fakeAsync.Now < TimeSpan.FromSeconds(1));
+            Assert.Equal(default, _fakeAsync.UtcNow);
+            _fakeAsync.Isolate(() => Assert.Equal(default, DateTime.UtcNow));
+            _fakeAsync.Isolate(() => Assert.Equal(default, DateTime.Now));
         }
 
         [Fact]
