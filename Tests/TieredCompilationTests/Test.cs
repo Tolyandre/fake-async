@@ -1,7 +1,7 @@
 using FakeAsyncs;
 using System;
 using System.Threading.Tasks;
-using Tests;
+using FakeAsyncTests;
 using Xunit;
 
 namespace TieredCompilationTest1
@@ -13,7 +13,7 @@ namespace TieredCompilationTest1
     {
         private readonly FakeAsync _fakeAsync = new FakeAsync();
 
-        private TimeSpan _delayForJITdoesHisWork = TimeSpan.FromSeconds(5);
+        private readonly TimeSpan _delayForJITdoesHisWork = TimeSpan.FromSeconds(5);
 
         [Fact]
         public async Task PatchRemainsAfterDelay1()

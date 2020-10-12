@@ -67,17 +67,17 @@ namespace FakeAsyncs
             }
         }
 
-        /// <summary>
-        /// Runs callback in mocked environment, isolated from default task scheduler and timers.
-        /// 
-        /// Asynchronous code will be executed sequentially. Delays will resume only after passing time with <c>Tick()</c>.
-        /// </summary>
-        /// <param name="methodUnderTest">Callback to be run in isolation.</param>
-        public void Isolate(Action methodUnderTest) => Isolate(() =>
-        {
-            methodUnderTest();
-            return Task.CompletedTask;
-        });
+        ///// <summary>
+        ///// Runs callback in mocked environment, isolated from default task scheduler and timers.
+        ///// 
+        ///// Asynchronous code will be executed sequentially. Delays will resume only after passing time with <c>Tick()</c>.
+        ///// </summary>
+        ///// <param name="methodUnderTest">Callback to be run in isolation.</param>
+        //public void Isolate(Action methodUnderTest) => Isolate(() =>
+        //{
+        //    methodUnderTest();
+        //    return Task.CompletedTask;
+        //});
 
         /// <summary>
         /// Runs callback in mocked environment, isolated from default task scheduler and timers.

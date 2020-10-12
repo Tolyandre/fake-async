@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using Tests;
+using FakeAsyncTests;
 using Xunit;
 using Xunit.Abstractions;
 

@@ -3,7 +3,7 @@ using System;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace Tests
+namespace FakeAsyncTests
 {
     public class FakeAsyncTests
     {
@@ -107,8 +107,17 @@ namespace Tests
         public void UtcNowIsDefault()
         {
             Assert.Equal(default, _fakeAsync.UtcNow);
-            _fakeAsync.Isolate(() => Assert.Equal(default, DateTime.UtcNow));
-            _fakeAsync.Isolate(() => Assert.Equal(default, DateTime.Now));
+            _fakeAsync.Isolate(() =>
+            {
+                Assert.Equal(default, DateTime.UtcNow);
+                return Task.CompletedTask;
+            });
+
+            _fakeAsync.Isolate(() =>
+            {
+                Assert.Equal(default, DateTime.Now);
+                return Task.CompletedTask;
+            });
         }
 
         [Fact]

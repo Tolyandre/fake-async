@@ -3,9 +3,9 @@ using HarmonyLib;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace Tests
+namespace FakeAsyncTests
 {
-    public static class TaskTestsHelper
+    public static class Helper
     {
         public static void AssertIfTheadPoolTaskScheduler(this Task task)
         {
