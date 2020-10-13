@@ -1,17 +1,17 @@
 ﻿using HarmonyLib;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FakeAsyncs
 {
-    [HarmonyPatch(typeof(Task), "Delay", typeof(TimeSpan))]
+    [HarmonyPatch(typeof(Task), "Delay", typeof(int), typeof(CancellationToken))]
     class TaskDelayPatch
     {
-        static bool Prefix(ref Task __result, TimeSpan delay)
+        static Task Postfix(Task __result, int millisecondsDelay, CancellationToken cancellationToken)
         {
-            __result = FakeAsync.CurrentInstance?.CreateFakeDelay(delay);
-
-            return __result == null;
+            return FakeAsync.CurrentInstance?.DecorateTaskDelay(__result, TimeSpan.FromMilliseconds(millisecondsDelay), cancellationToken)
+                ?? __result;
         }
     }
 }

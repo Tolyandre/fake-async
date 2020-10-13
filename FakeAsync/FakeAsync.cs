@@ -34,8 +34,7 @@ namespace FakeAsyncs
         private bool _isRunning = false;
         internal DeterministicTaskScheduler DeterministicTaskScheduler { get; private set; } = new DeterministicTaskScheduler();
 
-        // This collection is not thread safe, because one-task per time TaskScheduler is used
-        private readonly SortedList<DateTime, TaskCompletionSource<bool>> _waitList = new SortedList<DateTime, TaskCompletionSource<bool>>();
+        private readonly WaitList _waitList = new WaitList();
 
         /// <summary>
         /// Current fake time. This value affects <see cref="DateTime.UtcNow" /> and <see cref="DateTime.Now"/>.
@@ -66,18 +65,6 @@ namespace FakeAsyncs
                 _harmony.PatchAll(typeof(FakeAsync).Assembly);
             }
         }
-
-        ///// <summary>
-        ///// Runs callback in mocked environment, isolated from default task scheduler and timers.
-        ///// 
-        ///// Asynchronous code will be executed sequentially. Delays will resume only after passing time with <c>Tick()</c>.
-        ///// </summary>
-        ///// <param name="methodUnderTest">Callback to be run in isolation.</param>
-        //public void Isolate(Action methodUnderTest) => Isolate(() =>
-        //{
-        //    methodUnderTest();
-        //    return Task.CompletedTask;
-        //});
 
         /// <summary>
         /// Runs callback in mocked environment, isolated from default task scheduler and timers.
@@ -162,24 +149,11 @@ namespace FakeAsyncs
         public void Tick(TimeSpan duration)
         {
             var endTick = _now + duration;
-            DeterministicTaskScheduler.RunTasksUntilIdle();
 
-            while (_waitList.Count > 0 && _now <= endTick)
-            {
-                var next = _waitList.First();
-                if (next.Key > endTick)
-                {
-                    break;
-                }
-
-                _waitList.RemoveAt(0);
-                _now = next.Key;
-
-                // SetResult will also run its continuation task
-                next.Value.SetResult(false);
-
+            do
                 DeterministicTaskScheduler.RunTasksUntilIdle();
-            }
+
+            while (_waitList.TryResumeNext(ref _now, endTick));
 
             _now = endTick;
         }
@@ -198,32 +172,34 @@ namespace FakeAsyncs
             }
         }
 
-        internal Task CreateFakeDelay(TimeSpan duration)
+        internal Task DecorateTaskDelay(Task taskFromDelay, TimeSpan duration, CancellationToken cancellationToken)
         {
-            if (duration == TimeSpan.Zero)
-                return Task.CompletedTask;
+            // either duration==0 or cancellation requested
+            if (taskFromDelay.IsCompleted)
+                return taskFromDelay;
 
             var tcs = new TaskCompletionSource<bool>(null);
-
             _waitList.Add(UtcNow + duration, tcs);
+
+            cancellationToken.Register(state =>
+            {
+                _waitList.RemoveAndCancel((TaskCompletionSource<bool>)state);
+            }, tcs);
 
             return tcs.Task;
         }
 
         /// <summary>
-        /// Throws if there are dalay tasks that not expired yet.
+        /// Fails all pending tasks with <see cref="DelayTasksNotCompletedException"/>.
+        /// Returns exception if any pending task exists.
         /// </summary>
         private DelayTasksNotCompletedException ThrowDelayTasks()
         {
-            var times = _waitList.Select(x => x.Key).ToArray();
+            var times = new List<DateTime>();
 
-            while (_waitList.Count > 0)
+            while (_waitList.ThrowNext(UtcNow, out var time))
             {
-                var next = _waitList.First();
-                _waitList.RemoveAt(0);
-
-                next.Value.SetException(new DelayTasksNotCompletedException(UtcNow, new[] { next.Key }));
-
+                times.Add(time);
                 DeterministicTaskScheduler.RunTasksUntilIdle();
             }
 

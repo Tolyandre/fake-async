@@ -38,6 +38,7 @@ namespace FakeAsyncTests
         {
             var ex = Assert.Throws<DelayTasksNotCompletedException>(() => _fakeAsync.Isolate(() =>
             {
+                // all overloads
                 _ = Task.Delay(750);
                 _ = Task.Delay(500, CancellationToken.None);
                 _ = Task.Delay(TimeSpan.FromSeconds(20));
@@ -62,7 +63,7 @@ namespace FakeAsyncTests
             var ex = Assert.Throws<DelayTasksNotCompletedException>(() => _fakeAsync.Isolate(()
                  => Task.Delay(TimeSpan.FromSeconds(10))));
 
-            Assert.Equal("Current time is 20.10.2020 0:00:00. One or many Delay tasks are still waiting for time: 20.10.2020 0:00:10", ex.Message);
+            Assert.Contains("Current time is 20.10.2020 0:00:00. One or many Delay tasks are still waiting for time: 20.10.2020 0:00:10", ex.Message);
         }
 
         [Fact]
@@ -82,7 +83,7 @@ namespace FakeAsyncTests
                 return Task.CompletedTask;
             }));
 
-            Assert.Equal(ex.Now, _startTime);
+            Assert.Equal(ex.Now, _startTime.AddSeconds(0.75));
             Assert.Collection(ex.DelayUntilTimes,
                 x => Assert.Equal(x, _startTime + TimeSpan.FromSeconds(1)),
                 x => Assert.Equal(x, _startTime + TimeSpan.FromSeconds(20)));
@@ -117,7 +118,6 @@ namespace FakeAsyncTests
             _fakeAsync.Isolate(async () =>
             {
                 _ = Task.Delay(5000);
-                await Task.Delay(TimeSpan.FromSeconds(5));
 
                 _fakeAsync.Tick(TimeSpan.FromSeconds(5));
             });
@@ -157,30 +157,30 @@ namespace FakeAsyncTests
         [Fact]
         public void DoesNotResumeCancelledDelays()
         {
+            var list = new List<int>();
+            var cts = new CancellationTokenSource();
+
+            async Task Method()
+            {
+                await Task.Delay(500, cts.Token);
+                list.Add(500);
+
+                await Task.Delay(1000, cts.Token);
+                list.Add(1000);
+            }
+
             _fakeAsync.Isolate(() =>
             {
-                var list = new List<int>();
-                var cts = new CancellationTokenSource();
+                var testing = Method();
 
-                Task.Delay(1000, cts.Token)
-                    .ContinueWith(_ => list.Add(1000));
-
-                Task.Delay(500)
-                    .ContinueWith(_ => list.Add(500));
-
-                Task.Delay(TimeSpan.FromSeconds(2), cts.Token)
-                    .ContinueWith(_ => list.Add(2000));
-
-                Task.Delay(0)
-                    .ContinueWith(_ => list.Add(0));
-
+                _fakeAsync.Tick(TimeSpan.FromMilliseconds(500));
                 cts.Cancel();
-                _fakeAsync.Tick(TimeSpan.FromMilliseconds(2000));
+                _fakeAsync.Tick(TimeSpan.FromMilliseconds(1000));
 
                 Assert.Collection(list,
-                    x => Assert.Equal(0, x),
                     x => Assert.Equal(500, x));
 
+                return testing;
                 return Task.CompletedTask;
             });
         }
