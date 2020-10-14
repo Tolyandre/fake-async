@@ -8,10 +8,11 @@ namespace FakeAsyncs
     [HarmonyPatch(typeof(Task), "Delay", typeof(int), typeof(CancellationToken))]
     class TaskDelayPatch
     {
-        static Task Postfix(Task __result, int millisecondsDelay, CancellationToken cancellationToken)
+        public static bool Prefix(ref Task __result, int millisecondsDelay, CancellationToken cancellationToken)
         {
-            return FakeAsync.CurrentInstance?.DecorateTaskDelay(__result, TimeSpan.FromMilliseconds(millisecondsDelay), cancellationToken)
-                ?? __result;
+            __result = FakeAsync.CurrentInstance?.CreateDelayTask(TimeSpan.FromMilliseconds(millisecondsDelay), cancellationToken);
+                
+            return __result == null;
         }
     }
 }

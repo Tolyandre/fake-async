@@ -115,24 +115,28 @@ namespace FakeAsyncs
                         "This indicates that some concurrency is not handled by FakeAsync. " + FakeAsyncConcurrencyException.DefaultTaskSchedulerWarning);
                 }
 
+                // throw if task is fault or Canceled
+                // this way of throwing preserve original exception's stack
+                unwrappedTask.GetAwaiter().GetResult();
+
                 // scenario when delays are not awaited in testing method
-                if (delayTasksNotCompletedException != null && !unwrappedTask.IsFaulted)
+                if (delayTasksNotCompletedException != null)
                 {
                     throw delayTasksNotCompletedException;
                 }
 
-                // else propagate exceptions from testing method
-                if (unwrappedTask.IsFaulted)
-                {
-                    AggregateException ex = unwrappedTask.Exception;
+                //// else propagate exceptions from testing method
+                //if (hasException)
+                //{
+                //    AggregateException ex = unwrappedTask.Exception;
 
-                    // unwrap AggregatException without changing the stack-trace
-                    // to be more like the synchronous code
-                    if (ex.InnerExceptions.Count == 1)
-                        ExceptionDispatchInfo.Capture(ex.InnerExceptions[0]).Throw();
-                    else
-                        ExceptionDispatchInfo.Capture(unwrappedTask.Exception).Throw();
-                }
+                //    // unwrap AggregatException without changing the stack-trace
+                //    // to be more like the synchronous code
+                //    if (ex.InnerExceptions.Count == 1)
+                //        ExceptionDispatchInfo.Capture(ex.InnerExceptions[0]).Throw();
+                //    else
+                //        ExceptionDispatchInfo.Capture(unwrappedTask.Exception).Throw();
+                //}
             }
             finally
             {
@@ -172,18 +176,22 @@ namespace FakeAsyncs
             }
         }
 
-        internal Task DecorateTaskDelay(Task taskFromDelay, TimeSpan duration, CancellationToken cancellationToken)
+        internal Task CreateDelayTask(TimeSpan duration, CancellationToken cancelationToken)
         {
-            // either duration==0 or cancellation requested
-            if (taskFromDelay.IsCompleted)
-                return taskFromDelay;
+            if (cancelationToken.IsCancellationRequested)
+                return Task.FromCanceled(cancelationToken);
+
+            if (duration == TimeSpan.Zero)
+                return Task.CompletedTask;
 
             var tcs = new TaskCompletionSource<bool>(null);
             _waitList.Add(UtcNow + duration, tcs);
 
-            cancellationToken.Register(state =>
+            cancelationToken.Register(state =>
             {
                 _waitList.RemoveAndCancel((TaskCompletionSource<bool>)state);
+                DeterministicTaskScheduler.RunTasksUntilIdle();
+
             }, tcs);
 
             return tcs.Task;

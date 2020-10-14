@@ -90,7 +90,7 @@ namespace FakeAsyncTests
         }
 
         [Fact]
-        public void CancelledDelaysAreNotShownInException()
+        public void CanceledDelaysAreNotShownInException()
         {
             var ex = Assert.Throws<DelayTasksNotCompletedException>(() => _fakeAsync.Isolate(() =>
             {
@@ -142,6 +142,8 @@ namespace FakeAsyncTests
                 Task.Delay(0)
                     .ContinueWith(_ => list.Add(0));
 
+                Assert.Empty(list);
+
                 _fakeAsync.Tick(TimeSpan.FromMilliseconds(2000));
 
                 Assert.Collection(list,
@@ -155,32 +157,24 @@ namespace FakeAsyncTests
         }
 
         [Fact]
-        public void DoesNotResumeCancelledDelays()
+        public void ZeroDelayIsCompleted()
         {
-            var list = new List<int>();
             var cts = new CancellationTokenSource();
-
-            async Task Method()
-            {
-                await Task.Delay(500, cts.Token);
-                list.Add(500);
-
-                await Task.Delay(1000, cts.Token);
-                list.Add(1000);
-            }
 
             _fakeAsync.Isolate(() =>
             {
-                var testing = Method();
+                var testing1 = Task.Delay(0);
+                Assert.True(testing1.IsCompletedSuccessfully);
 
-                _fakeAsync.Tick(TimeSpan.FromMilliseconds(500));
-                cts.Cancel();
-                _fakeAsync.Tick(TimeSpan.FromMilliseconds(1000));
+                var testing2 = Task.Delay(0, cts.Token);
+                Assert.True(testing2.IsCompletedSuccessfully);
 
-                Assert.Collection(list,
-                    x => Assert.Equal(500, x));
+                var testing3 = Task.Delay(TimeSpan.Zero);
+                Assert.True(testing3.IsCompletedSuccessfully);
 
-                return testing;
+                var testing4 = Task.Delay(TimeSpan.Zero, cts.Token);
+                Assert.True(testing4.IsCompletedSuccessfully);
+
                 return Task.CompletedTask;
             });
         }
