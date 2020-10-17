@@ -12,7 +12,7 @@ namespace FakeAsyncTests
     {
         private readonly FakeAsync _fakeAsync = new FakeAsync();
 
-        private readonly DateTime _startTime = new DateTime(2020, 10, 20);
+        private readonly DateTime _startTime = new DateTime(2020, 10, 20).ToUniversalTime();
 
         public DelayTests()
         {
@@ -29,7 +29,7 @@ namespace FakeAsyncTests
                 await Task.Delay(TimeSpan.FromSeconds(10));
             }));
 
-            Assert.Equal(ex.Now, _startTime);
+            Assert.Equal(ex.UtcNow, _startTime);
             Assert.Collection(ex.DelayUntilTimes, x => Assert.Equal(x, _startTime + TimeSpan.FromSeconds(10)));
         }
 
@@ -47,7 +47,7 @@ namespace FakeAsyncTests
                 return Task.CompletedTask;
             }));
 
-            Assert.Equal(ex.Now, _startTime);
+            Assert.Equal(ex.UtcNow, _startTime);
             Assert.Collection(ex.DelayUntilTimes,
                 x => Assert.Equal(x, _startTime + TimeSpan.FromMilliseconds(500)),
                 x => Assert.Equal(x, _startTime + TimeSpan.FromMilliseconds(750)),
@@ -58,12 +58,10 @@ namespace FakeAsyncTests
         [Fact]
         public void ExceptionHasMessage()
         {
-            CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
-
             var ex = Assert.Throws<DelayTasksNotCompletedException>(() => _fakeAsync.Isolate(()
                  => Task.Delay(TimeSpan.FromSeconds(10))));
 
-            Assert.Contains("Current time is 20.10.2020 0:00:00. One or many Delay tasks are still waiting for time: 20.10.2020 0:00:10", ex.Message);
+            Assert.Contains("One or many Delay tasks are still waiting for time:", ex.Message);
         }
 
         [Fact]
@@ -83,7 +81,7 @@ namespace FakeAsyncTests
                 return Task.CompletedTask;
             }));
 
-            Assert.Equal(ex.Now, _startTime.AddSeconds(0.75));
+            Assert.Equal(ex.UtcNow, _startTime.AddSeconds(0.75));
             Assert.Collection(ex.DelayUntilTimes,
                 x => Assert.Equal(x, _startTime + TimeSpan.FromSeconds(1)),
                 x => Assert.Equal(x, _startTime + TimeSpan.FromSeconds(20)));
@@ -106,7 +104,7 @@ namespace FakeAsyncTests
                 return Task.CompletedTask;
             }));
 
-            Assert.Equal(ex.Now, _startTime);
+            Assert.Equal(ex.UtcNow, _startTime);
             Assert.Collection(ex.DelayUntilTimes,
                 x => Assert.Equal(x, _startTime + TimeSpan.FromSeconds(0.5)),
                 x => Assert.Equal(x, _startTime + TimeSpan.FromSeconds(0.75)));

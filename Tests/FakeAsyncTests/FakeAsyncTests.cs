@@ -104,23 +104,6 @@ namespace FakeAsyncTests
         }
 
         [Fact]
-        public void UtcNowIsDefault()
-        {
-            Assert.Equal(default, _fakeAsync.UtcNow);
-            _fakeAsync.Isolate(() =>
-            {
-                Assert.Equal(default, DateTime.UtcNow);
-                return Task.CompletedTask;
-            });
-
-            _fakeAsync.Isolate(() =>
-            {
-                Assert.Equal(default, DateTime.Now);
-                return Task.CompletedTask;
-            });
-        }
-
-        [Fact]
         public void ThrowsIfNested()
         {
             _fakeAsync.Isolate(async () =>

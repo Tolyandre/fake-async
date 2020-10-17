@@ -11,7 +11,7 @@ namespace FakeAsyncTests
 
         public SimpleTickTests()
         {
-            _fakeAsync = new FakeAsyncs.FakeAsync();
+            _fakeAsync = new FakeAsync();
             _fakeAsync.UtcNow = new DateTime(2020, 9, 30);
         }
 

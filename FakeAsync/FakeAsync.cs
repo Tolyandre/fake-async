@@ -30,7 +30,7 @@ namespace FakeAsyncs
             _harmony.PatchAll(typeof(FakeAsync).Assembly);
         }
 
-        private DateTime _now;
+        private DateTime _utcNow = default(DateTime).ToUniversalTime();
         private bool _isRunning = false;
         internal DeterministicTaskScheduler DeterministicTaskScheduler { get; private set; } = new DeterministicTaskScheduler();
 
@@ -41,13 +41,13 @@ namespace FakeAsyncs
         /// </summary>
         public DateTime UtcNow
         {
-            get { return _now; }
+            get { return _utcNow; }
             set
             {
                 if (_isRunning)
                     throw new InvalidOperationException($"Cannot change {nameof(UtcNow)} when method is running. Use {nameof(Tick)}() to pass time.");
 
-                _now = value;
+                _utcNow = value.ToUniversalTime();
             }
         }
 
@@ -152,14 +152,14 @@ namespace FakeAsyncs
         /// <param name="duration">Amount of time to pass.</param>
         public void Tick(TimeSpan duration)
         {
-            var endTick = _now + duration;
+            var endTick = _utcNow + duration;
 
             do
                 DeterministicTaskScheduler.RunTasksUntilIdle();
 
-            while (_waitList.TryResumeNext(ref _now, endTick));
+            while (_waitList.TryResumeNext(ref _utcNow, endTick));
 
-            _now = endTick;
+            _utcNow = endTick;
         }
 
         private static bool _preventTieredCompilationDelayed = false;

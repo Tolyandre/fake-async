@@ -9,22 +9,12 @@ namespace FakeAsyncTests
 {
     public class TimeInterceptionTests
     {
-        private readonly FakeAsyncs.FakeAsync _fakeAsync;
+        private readonly FakeAsync _fakeAsync;
 
         public TimeInterceptionTests()
         {
-            _fakeAsync = new FakeAsyncs.FakeAsync();
+            _fakeAsync = new FakeAsync();
             _fakeAsync.UtcNow = new DateTime(2020, 9, 27);
-        }
-
-        [Fact]
-        public void DateTimeNow()
-        {
-             _fakeAsync.Isolate(async () =>
-            {
-                Assert.Equal(new DateTime(2020, 9, 27), DateTime.Now);
-                Assert.Equal(new DateTime(2020, 9, 27), DateTime.Now);
-            });
         }
 
         [Fact]
