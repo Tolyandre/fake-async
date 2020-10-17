@@ -1,7 +1,6 @@
 ﻿using FakeAsyncs;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -22,15 +21,13 @@ namespace FakeAsyncTests
         [Fact]
         public void PendingDelayShouldThrow()
         {
-            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
-
             var ex = Assert.Throws<DelayTasksNotCompletedException>(() => _fakeAsync.Isolate(async () =>
             {
                 await Task.Delay(TimeSpan.FromSeconds(10));
             }));
 
             Assert.Equal(ex.UtcNow, _startTime);
-            Assert.Collection(ex.DelayUntilTimes, x => Assert.Equal(x, _startTime + TimeSpan.FromSeconds(10)));
+            Assert.Collection(ex.DelayUntilTimes, x => Assert.Equal(_startTime + TimeSpan.FromSeconds(10), x));
         }
 
         [Fact]
@@ -49,10 +46,10 @@ namespace FakeAsyncTests
 
             Assert.Equal(ex.UtcNow, _startTime);
             Assert.Collection(ex.DelayUntilTimes,
-                x => Assert.Equal(x, _startTime + TimeSpan.FromMilliseconds(500)),
-                x => Assert.Equal(x, _startTime + TimeSpan.FromMilliseconds(750)),
-                x => Assert.Equal(x, _startTime + TimeSpan.FromSeconds(10)),
-                x => Assert.Equal(x, _startTime + TimeSpan.FromSeconds(20)));
+                x => Assert.Equal(_startTime + TimeSpan.FromMilliseconds(500), x),
+                x => Assert.Equal(_startTime + TimeSpan.FromMilliseconds(750), x),
+                x => Assert.Equal(_startTime + TimeSpan.FromSeconds(10), x),
+                x => Assert.Equal(_startTime + TimeSpan.FromSeconds(20), x));
         }
 
         [Fact]
@@ -83,8 +80,8 @@ namespace FakeAsyncTests
 
             Assert.Equal(ex.UtcNow, _startTime.AddSeconds(0.75));
             Assert.Collection(ex.DelayUntilTimes,
-                x => Assert.Equal(x, _startTime + TimeSpan.FromSeconds(1)),
-                x => Assert.Equal(x, _startTime + TimeSpan.FromSeconds(20)));
+                x => Assert.Equal(_startTime + TimeSpan.FromSeconds(1), x),
+                x => Assert.Equal(_startTime + TimeSpan.FromSeconds(20), x));
         }
 
         [Fact]
@@ -106,8 +103,8 @@ namespace FakeAsyncTests
 
             Assert.Equal(ex.UtcNow, _startTime);
             Assert.Collection(ex.DelayUntilTimes,
-                x => Assert.Equal(x, _startTime + TimeSpan.FromSeconds(0.5)),
-                x => Assert.Equal(x, _startTime + TimeSpan.FromSeconds(0.75)));
+                x => Assert.Equal(_startTime + TimeSpan.FromSeconds(0.5), x),
+                x => Assert.Equal(_startTime + TimeSpan.FromSeconds(0.75), x));
         }
 
         [Fact]

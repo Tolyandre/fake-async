@@ -7,7 +7,7 @@ namespace FakeAsyncTests
 {
     public class SimpleTickTests
     {
-        private readonly FakeAsyncs.FakeAsync _fakeAsync;
+        private readonly FakeAsync _fakeAsync;
 
         public SimpleTickTests()
         {
