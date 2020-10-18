@@ -149,5 +149,23 @@ namespace FakeAsyncTests
                  await testing;
              }));
         }
+
+        [Fact]
+        public void CannotSetZeroIterationsLimit()
+        {
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => _fakeAsync.IterationsLimit = 0);
+
+            Assert.Equal("IterationsLimit", ex.ParamName);
+            Assert.Equal((uint)0, ex.ActualValue);
+        }
+
+        [Fact]
+        public void CannotSetPendingTasksLimit()
+        {
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => _fakeAsync.PendingTasksLimit = 0);
+
+            Assert.Equal("PendingTasksLimit", ex.ParamName);
+            Assert.Equal((uint)0, ex.ActualValue);
+        }
     }
 }

@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -33,8 +32,42 @@ namespace FakeAsyncs
         private DateTime _utcNow = default(DateTime).ToUniversalTime();
         private bool _isRunning = false;
         internal DeterministicTaskScheduler DeterministicTaskScheduler { get; private set; } = new DeterministicTaskScheduler();
+        private uint _iterationsLimit = 1_000;
+        private uint _pendingTasksLimit = 100_000;
 
         private readonly WaitList _waitList = new WaitList();
+
+        /// <summary>
+        /// Limit of iterations in <see cref="Tick(TimeSpan)" />.
+        /// <seealso cref="LimitExceededException"/> is thrown if pending tasks are still scheduled.
+        /// </summary>
+        public uint IterationsLimit
+        {
+            get { return _iterationsLimit; }
+            set
+            {
+                if (value == 0)
+                    throw new ArgumentOutOfRangeException(nameof(IterationsLimit), value, "Cannot be zero");
+
+                _iterationsLimit = value;
+            }
+        }
+
+        /// <summary>
+        /// Limit of pending tasks in fake task scheduler.
+        /// <seealso cref="LimitExceededException"/> is thrown if limit exceeded.
+        /// </summary>
+        public uint PendingTasksLimit
+        {
+            get { return _pendingTasksLimit; }
+            set
+            {
+                if (value == 0)
+                    throw new ArgumentOutOfRangeException(nameof(PendingTasksLimit), value, "Cannot be zero");
+
+                _pendingTasksLimit = value;
+            }
+        }
 
         /// <summary>
         /// Current fake time. This value affects <see cref="DateTime.UtcNow" /> and <see cref="DateTime.Now"/>.
@@ -98,12 +131,12 @@ namespace FakeAsyncs
                 {
                     var task = methodUnderTest();
 
-                    DeterministicTaskScheduler.RunTasksUntilIdle();
+                    DeterministicTaskScheduler.RunTasksUntilIdle(this);
 
                     return task;
                 });
 
-                DeterministicTaskScheduler.RunTasksUntilIdle();
+                DeterministicTaskScheduler.RunTasksUntilIdle(this);
 
                 var delayTasksNotCompletedException = ThrowDelayTasks();
 
@@ -153,10 +186,16 @@ namespace FakeAsyncs
         public void Tick(TimeSpan duration)
         {
             var endTick = _utcNow + duration;
+            uint iteration = 0;
 
             do
-                DeterministicTaskScheduler.RunTasksUntilIdle();
+            {
+                DeterministicTaskScheduler.RunTasksUntilIdle(this);
 
+                if (++iteration == IterationsLimit)
+                    LimitExceededException.ThrowIterationLimit(iteration);
+
+            }
             while (_waitList.TryResumeNext(ref _utcNow, endTick));
 
             _utcNow = endTick;
@@ -190,7 +229,7 @@ namespace FakeAsyncs
             cancelationToken.Register(state =>
             {
                 _waitList.RemoveAndCancel((TaskCompletionSource<bool>)state);
-                DeterministicTaskScheduler.RunTasksUntilIdle();
+                DeterministicTaskScheduler.RunTasksUntilIdle(this);
 
             }, tcs);
 
@@ -208,7 +247,7 @@ namespace FakeAsyncs
             while (_waitList.ThrowNext(UtcNow, out var time))
             {
                 times.Add(time);
-                DeterministicTaskScheduler.RunTasksUntilIdle();
+                DeterministicTaskScheduler.RunTasksUntilIdle(this);
             }
 
             if (times.Any())

@@ -41,7 +41,7 @@ namespace FakeAsyncs
         /// Executes the scheduled Tasks synchronously on the current thread. If those tasks schedule new tasks
         /// they will also be executed until no pending tasks are left.
         /// </summary>
-        public void RunTasksUntilIdle()
+        public void RunTasksUntilIdle(FakeAsync fakeAsync)
         {
             var lockTaken = false;
             Monitor.TryEnter(_lockObj, ref lockTaken);
@@ -49,11 +49,20 @@ namespace FakeAsyncs
             if (!lockTaken)
                 throw new FakeAsyncConcurrencyException("Only one thread is allowed to run inside FakeAsync. " + FakeAsyncConcurrencyException.DefaultTaskSchedulerWarning);
 
+            var maxIterations = fakeAsync.IterationsLimit;
+
             try
             {
+                uint iteration = 0;
                 while (_scheduledTasks.Any())
                 {
                     this.RunPendingTasks();
+
+                    if (++iteration == maxIterations)
+                        LimitExceededException.ThrowIterationLimit(iteration);
+
+                    if (_scheduledTasks.Count > fakeAsync.PendingTasksLimit)
+                        LimitExceededException.ThrowPendingTasksLimit((uint)_scheduledTasks.Count);
                 }
             }
             finally
@@ -70,8 +79,6 @@ namespace FakeAsyncs
         {
             foreach (var task in _scheduledTasks.ToArray())
             {
-                // FakeAsync.ReapplyPatch();
-
                 this.TryExecuteTask(task);
                 _scheduledTasks.Remove(task);
             }

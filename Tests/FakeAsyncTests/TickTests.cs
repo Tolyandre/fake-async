@@ -5,11 +5,11 @@ using Xunit;
 
 namespace FakeAsyncTests
 {
-    public class SimpleTickTests
+    public class TickTests
     {
         private readonly FakeAsync _fakeAsync;
 
-        public SimpleTickTests()
+        public TickTests()
         {
             _fakeAsync = new FakeAsync();
             _fakeAsync.UtcNow = new DateTime(2020, 9, 30);
@@ -39,6 +39,21 @@ namespace FakeAsyncTests
                 _fakeAsync.Tick(TimeSpan.FromSeconds(9));
             }));
         }
+
+        [Fact]
+        public void TickCanPassBigPeriodOfTime()
+        {
+            _fakeAsync.Isolate(() =>
+            {
+                var testing = AsyncMethodWithSingleDelay();
+
+                _fakeAsync.Tick(TimeSpan.FromDays(365.4 * 100));
+                return testing;
+            });
+
+            Assert.Equal(new DateTime(2020, 9, 30).AddDays(365.4 * 100).ToUniversalTime(), _fakeAsync.UtcNow);
+        }
+
 
         private Task AsyncMethodWithSingleDelay()
         {

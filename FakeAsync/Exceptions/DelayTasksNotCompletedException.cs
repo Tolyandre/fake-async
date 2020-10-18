@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 
 namespace FakeAsyncs
 {
@@ -13,6 +14,18 @@ namespace FakeAsyncs
         {
             UtcNow = utcNow;
             DelayUntilTimes = delayUntilTimes;
+        }
+
+        public DelayTasksNotCompletedException()
+        {
+        }
+
+        protected DelayTasksNotCompletedException(SerializationInfo info, StreamingContext context) : base(info, context)
+        {
+        }
+
+        public DelayTasksNotCompletedException(string message, Exception innerException) : base(message, innerException)
+        {
         }
     }
 }
