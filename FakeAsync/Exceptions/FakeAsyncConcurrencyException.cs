@@ -11,7 +11,7 @@ namespace FakeAsyncs
         public const string DefaultTaskSchedulerWarning =
             "In general, this issue can occure if TaskScheduler or SynchronizationContext is not faked. " +
             "Awaiting task created outside of FakeAsync may lead to this issue. " +
-            "Outside tasks are scheduled with default ThreadPoolTaskScheduler, therefore are not intercepted by FakeAsync. Continuation of such tasks untroduces a new thread from thread pool.";
+            "Outside tasks are scheduled with default ThreadPoolTaskScheduler, therefore are not intercepted by FakeAsync. Continuation of such tasks introduces a new thread from thread pool.";
 
         public FakeAsyncConcurrencyException()
         {
