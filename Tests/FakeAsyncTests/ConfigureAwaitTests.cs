@@ -10,11 +10,35 @@ namespace FakeAsyncTests
         private readonly FakeAsync _fakeAsync = new FakeAsync();
 
         [Fact]
-        public void DoesNotUseThreadPool()
+        public void NonGeneric_DoesNotUseThreadPool()
         {
             async Task Method()
             {
                 await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+
+                Assert.IsType<DeterministicTaskScheduler>(TaskScheduler.Current);
+
+                await Task.Delay(TimeSpan.FromSeconds(10));
+            }
+
+            _fakeAsync.Isolate(() =>
+            {
+                var testing = Method();
+
+                _fakeAsync.Tick(TimeSpan.FromSeconds(11));
+
+                return testing;
+            });
+        }
+
+        [Fact]
+        public void Generic_DoesNotUseThreadPool()
+        {
+            async Task Method()
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1))
+                    .ContinueWith(t => 1)
+                    .ConfigureAwait(false);
 
                 Assert.IsType<DeterministicTaskScheduler>(TaskScheduler.Current);
 
