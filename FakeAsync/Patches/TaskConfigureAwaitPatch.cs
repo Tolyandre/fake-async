@@ -8,8 +8,11 @@ namespace FakeAsyncs
     {
         public static bool Prefix(ref bool continueOnCapturedContext)
         {
-            // continuation goes to fake task scheduler instead thread pool
-            continueOnCapturedContext = true;
+            if (FakeAsync.CurrentInstance != null)
+            {
+                // continuation goes to fake task scheduler instead thread pool
+                continueOnCapturedContext = true;
+            }
 
             return true;
         }
@@ -20,8 +23,11 @@ namespace FakeAsyncs
     {
         public static bool Prefix(ref bool continueOnCapturedContext)
         {
-            // continuation goes to fake task scheduler instead thread pool
-            continueOnCapturedContext = true;
+            if (FakeAsync.CurrentInstance != null)
+            {
+                // continuation goes to fake task scheduler instead thread pool
+                continueOnCapturedContext = true;
+            }
 
             return true;
         }
