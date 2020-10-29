@@ -15,6 +15,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TieredCompilationTest1", "T
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TieredCompilationTest3", "Tests\TieredCompilationTest3\TieredCompilationTest3.csproj", "{7A9C5E40-1340-42B0-B850-89E9FF0B3EA1}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{10E52EDA-D0B2-417B-91F6-F24398970078}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleDemo", "Tests\ConsoleDemo\ConsoleDemo.csproj", "{181F57DB-14D6-42EA-B7C8-A9E11BBCD4ED}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,6 +48,10 @@ Global
 		{7A9C5E40-1340-42B0-B850-89E9FF0B3EA1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7A9C5E40-1340-42B0-B850-89E9FF0B3EA1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7A9C5E40-1340-42B0-B850-89E9FF0B3EA1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{181F57DB-14D6-42EA-B7C8-A9E11BBCD4ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{181F57DB-14D6-42EA-B7C8-A9E11BBCD4ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{181F57DB-14D6-42EA-B7C8-A9E11BBCD4ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{181F57DB-14D6-42EA-B7C8-A9E11BBCD4ED}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -50,6 +61,7 @@ Global
 		{C0323832-DB05-47F3-AFF8-477BEBEC286F} = {84A9558A-2422-4466-9CCB-CE1F0443FBBE}
 		{757AEEC5-51B4-4E6D-9DC0-5FBC8648FA82} = {84A9558A-2422-4466-9CCB-CE1F0443FBBE}
 		{7A9C5E40-1340-42B0-B850-89E9FF0B3EA1} = {84A9558A-2422-4466-9CCB-CE1F0443FBBE}
+		{181F57DB-14D6-42EA-B7C8-A9E11BBCD4ED} = {84A9558A-2422-4466-9CCB-CE1F0443FBBE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7A1C1BC6-9C54-4238-9D59-0B669B6720CD}

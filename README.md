@@ -6,35 +6,54 @@ Simulates passage of time to test asynchronous long-running code in synchronous 
 This library is inspired from Angular's [FakeAsync](https://angular.io/api/core/testing/fakeAsync).
 
 ```c#
-var fakeAsync = new FakeAsync();
-
 bool flag = false;
-fakeAsync.UtcNow = new DateTime(2020, 10, 20);
 
 async Task MethodUnderTest()
 {
-	await Task.Delay(TimeSpan.FromSeconds(10));
+    await Task.Delay(TimeSpan.FromSeconds(10));
 
-	flag = true;
-	Assert.Equal(new DateTime(2020, 10, 20, 0, 0, 10), DateTime.Now); // DateTime.Now mocked
+    flag = true;
 
-	await Task.Delay(TimeSpan.FromSeconds(10));
+    _ = Task.Run(async () =>
+    {
+        await Task.Delay(TimeSpan.FromSeconds(10));
+
+        Console.WriteLine("Hello from faked thread pool");
+    });
 }
 
-fakeAsync.Isolate(() =>
+var fakeAsync = new FakeAsync
 {
-	var testing = MethodUnderTest();
-	
-	fakeAsync.Tick(TimeSpan.FromSeconds(9)); // skip 9s synchronously, no real delay
-	Assert.False(flag); // flag still false
+    UtcNow = new DateTime(2020, 10, 20),
+};
+          
+fakeAsync.Isolate(async () =>
+{
+    var testing = MethodUnderTest();
 
-	fakeAsync.Tick(TimeSpan.FromSeconds(1));
-	Assert.True(flag); // skip 1s more and now flag==true
+    // Current time is changed
+    Console.WriteLine("{0}, flag={1}", DateTime.UtcNow, flag); // 2020-10-20 00:00:00, false
 
-	fakeAsync.Tick(TimeSpan.FromSeconds(10)); // skip remaining time
+    // Skip 9s synchronously, no real delay
+    fakeAsync.Tick(TimeSpan.FromSeconds(9));
 
-	return testing; // propagate any exceptions from test method
+    Console.WriteLine("{0}, flag={1}", DateTime.UtcNow, flag); // 2020-10-20 00:00:09, false
+
+    // Skip 1s more
+    fakeAsync.Tick(TimeSpan.FromSeconds(1));
+
+    // Flag changed
+    Console.WriteLine("{0}, flag={1}", DateTime.UtcNow, flag); // 2020-10-20 00:00:10, true
+
+    // Now MethodUnderTest() is completed, await it to propagate any exceptions
+    await testing;
+
+    // Skip remaining time to display the message
+    fakeAsync.Tick(TimeSpan.FromSeconds(10)); // Hello from faked thread pool
 });
+
+// Print real system time
+Console.WriteLine(DateTime.UtcNow);
 ```
 
 Supported calls:

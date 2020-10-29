@@ -84,6 +84,7 @@ namespace FakeAsyncTests
                     await Task.Delay(TimeSpan.FromSeconds(10));
 
                     flag = true;
+                    Console.WriteLine(DateTime.Now);
                     Assert.Equal(new DateTime(2020, 10, 20, 0, 0, 10), DateTime.Now);
 
                     await Task.Delay(TimeSpan.FromSeconds(10));
