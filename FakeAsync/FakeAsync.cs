@@ -31,11 +31,19 @@ namespace FakeAsyncs
 
         private DateTime _utcNow = default(DateTime).ToUniversalTime();
         private bool _isRunning = false;
+
         internal DeterministicTaskScheduler DeterministicTaskScheduler { get; private set; } = new DeterministicTaskScheduler();
+        internal FakeAsyncSynchronizationContext SynchContext { get; private set; }
+
         private uint _iterationsLimit = 1_000;
         private uint _pendingTasksLimit = 100_000;
 
         private readonly WaitList _waitList = new WaitList();
+
+        public FakeAsync()
+        {
+            SynchContext = new FakeAsyncSynchronizationContext(this);
+        }
 
         /// <summary>
         /// Limit of iterations in <see cref="Tick(TimeSpan)" />.
@@ -117,14 +125,10 @@ namespace FakeAsyncs
             var taskFactory = new TaskFactory(CancellationToken.None,
                     TaskCreationOptions.DenyChildAttach, TaskContinuationOptions.None, DeterministicTaskScheduler);
 
-            // YieldAwaiter (Task.Yield()) posts to synchronization context if it exists.
-            // https://github.com/dotnet/runtime/blob/61d444ae7ca77cb49f38d313da6defa66f6ca38a/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/YieldAwaitable.cs#L88
-            // This leads to concurrency between our custom task scheduler and tasks running in synchronization context thread.
-            // Clearing synchronization context makes YieldAwaiter to use current task scheduler
             var previousSynchronizationContext = SynchronizationContext.Current;
             try
             {
-                SynchronizationContext.SetSynchronizationContext(null);
+                SynchronizationContext.SetSynchronizationContext(this.SynchContext);
 
                 // TODO: consider Task.RunSynchronously()
                 var wrapper = taskFactory.StartNew(() =>
